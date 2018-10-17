@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>接口调试工具</title>
+    <style>
+        #main{
+            height: 43rem;
+        }        
+        .flexMe {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+            flex-wrap: nowrap;
+            width:100%;
+        }
+        .col{
+            border:1px dashed gray;height: 100%;border-radius: 15px 15px;
+            flex-grow: 382;margin: 10px 10px;
+        }
+        .main-col{
+            flex-grow: 618;
+        }
+        .form-control,.rsl_board{
+            font-size: 14px;
+            padding: 5px 5px;
+            margin: 15px 20px;
+            width: 93%;
+        }
+        #result{
+            background-color: #F5F5F5;height: 50%;border-radius: 10px 10px;overflow-x: auto;
+        }
+        #result .rsl_board{display: none;}
+        #result #rsl_response{display: block;}
+        .rsl_board pre{
+            overflow-x: auto;max-width: 800px;
+        }
+        #result .rsl_menu ul{width: 80%;margin-top:5px;margin-left: -25px;}
+        #result .rsl_menu li{            
+            padding: 2px 10px;list-style: none;cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div style="text-align:center;"><h3>接口调试工具</h3></div>
+    <div id="main" class="flexMe">
+        <div class="col main-col">
+            <hr />
+            <form id="form1" enctype="application/x-www-form-urlencoded">
+                <input name="target_url" type="text" placeholder="请输入URL" class="form-control" />
+
+                <textarea name="target_param" class="form-control" placeholder="POST参数" rows="3"></textarea>
+                <textarea id="headerInfo" name="headerInfo" class="form-control" placeholder="自定义Header" rows="3" style="display:none;"></textarea>
+                <div>
+                    <select name="proxy_type" id="proxy_type" class="form-control" style="margin-top:14px;float:left;width:20%">
+                        <option value="post">POST</option>
+                        <option value="get">GET</option>
+                        <option value="put">PUT</option>
+                        <option value="delete">DELETE</option>
+                        <option value="head">HEAD</option>
+                        <option value="trace">TRACE</option>
+                        <option value="patch">PATCH</option>
+                        <option value="options">OPTIONS</option>
+                    </select>
+                    <select name="code" id="code" class="form-control" style="margin-top:13px;margin-left:10px;float:left;width:38%">
+                        <option value="utf8">UTF-8 --接口输出的编码</option>
+                        <option value="gbk">GBk --接口输出的编码</option>
+                        <option value="gb2312">GB2312 --接口输出的编码</option>
+                    </select>
+                    <select name="iscompress" id="iscompress" class="form-control" disabled="disabled" style="margin-top:10px;margin-left:10px;float:left;width:30.5%">
+                        <option value="1">自动解压(gzip,deflate,flate)</option>
+                        <option value="2">不解压</option>
+                    </select>
+                </div>
+                <div class="flexMe">
+                    <button type="button" id="btn" class="form-control" style="flex-grow: 6;width:60%">提交</button>
+                    <button type="button" id="hightForm" class="form-control" style="flex-grow: 1;width: 20%;">自定义Header</button>
+                    <button type="reset" id="clearform" class="form-control" style="flex-grow: 1;width: 20%;margin-right: 40px;">清空表单</button>
+                </div>
+            </form>
+
+            <div id="result" class="form-control">
+                <div class="rsl_menu">
+                    <ul class="flexMe">
+                        <li id="Rsl_r" data-target="rsl_response">Result</li>
+                        <li id="Rsl_f" data-target="rsl_format">RslFormat</li>
+                        <li id="Rsl_h" data-target="rsl_header">Header</li>
+                        <li id="Rsl_s" data-target="rsl_summary">Summary</li>
+                    </ul>
+                </div>
+                <div class="rsl_board" id="rsl_response"></div>
+                <div class="rsl_board" id="rsl_format"></div>
+                <div class="rsl_board" id="rsl_header"></div>
+                <div class="rsl_board" id="rsl_summary"></div>
+            </div>
+        </div>
+        <div class="col">
+            <ul>
+                <li>本地缓存调试记录</li>
+                <li>UrlEncode编码/解码</li>
+            </ul>
+        </div>
+    </div>
+    <div style="text-align: center;">
+        &copy;2018 <a href="//www.vmwed.com">VMWed.COM</a> 
+    </div>
+
+</body>
+</body>
+<script>
+    document.getElementById("hightForm").addEventListener("click", function (event) {
+        var h = document.getElementById("headerInfo");
+        var dpl = h.style.display;
+        h.style.display = dpl == "none" ? "block" : "none";
+    });
+
+    //TODO:代理工具 POST参数的解释
+    document.getElementById("btn").addEventListener("click",function(event){
+        var d ={
+            body:ParseForm("form1")
+            ,success : SuccessHandler
+            ,method:"POST"
+            ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}
+        };
+        Ajax("/Plugin/Proxy",d);
+        return false;
+    });
+
+    function ResultSwitch(e){
+        var tg = this.getAttribute("data-target");
+        var b = document.getElementsByClassName("rsl_board");
+        for(var i=0;i< b.length;i++){
+            if(b.item(i).id == tg) continue;
+            b.item(i).style.display="none"; 
+        }
+        b.namedItem(tg).style.display="block";
+    }
+
+    document.getElementById("Rsl_r").addEventListener("click",ResultSwitch);
+    document.getElementById("Rsl_f").addEventListener("click",ResultSwitch);
+    document.getElementById("Rsl_h").addEventListener("click",ResultSwitch);
+    document.getElementById("Rsl_s").addEventListener("click",ResultSwitch);
+
+    //请求数据
+    function Ajax(url,option){
+        if(fetch){
+            fetch(url,option).then(function(r){
+                return r.text();
+            }).then(function(r){
+                option.success(r);
+            });
+        }else{//不兼容的浏览器的异步方式
+            let xhr = new XMLHttpRequest();
+            xhr.open(option.method || "POST"
+            , url
+            , option.async ||true);
+
+            if (option.async) xhr.responseType = option.type || "text";
+            xhr.onload = function (e) {
+                if (this.status == 200 || this.status == 304) {
+                    option.success(xhr.responseText);
+                }
+            };
+            xhr.onerror = option.error;
+
+            try {
+                xhr.send(option.body);
+            } catch (e) {
+                option.error(e);
+            }
+        }
+    }
+
+    function SuccessHandler(d){
+        var rslObj = JSON.parse(d);
+        rslObj.rsl = decodeURIComponent(rslObj.rsl);
+        document.getElementById("rsl_response").innerText = rslObj.rsl;
+        document.getElementById("rsl_format").innerHTML = "<pre>"+rslObj.rsl+"</pre>";
+        document.getElementById("rsl_header").innerHTML = "<pre>"+decodeURIComponent(rslObj._header)+"</pre>";
+        document.getElementById("rsl_header").innerHTML += "<pre>"+decodeURIComponent(rslObj.headers)+"</pre>";
+        document.getElementById("rsl_summary").innerHTML = "<pre>接口响应耗时："+rslObj.tsMS+"ms</pre>";
+    }
+
+    function ParseForm(id){
+        var f=new FormData(document.getElementById(id));
+        var rsl = "";
+        for(var p of f.entries()){
+            rsl = rsl+"&"+p[0]+"="+encodeURIComponent(p[1]);
+        }
+        return rsl;
+    }
+</script>
+
+</html>
