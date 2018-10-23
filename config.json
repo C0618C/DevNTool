@@ -1,0 +1,8 @@
+{
+    "WebRoot": "E:\\Sources\\DevNTool",
+    "Port": 8888,
+	"Default": [
+        "index.html",
+        "HttpTest.html"
+    ]
+}

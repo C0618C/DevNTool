@@ -124,6 +124,11 @@
             ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}
         };
         Ajax("/Plugin/Proxy",d);
+
+        document.getElementById("rsl_response").innerText = 'loading...';
+        document.getElementById("rsl_format").innerHTML = "";
+        document.getElementById("rsl_header").innerHTML = "";
+        document.getElementById("rsl_summary").innerHTML = "";
         return false;
     });
 
