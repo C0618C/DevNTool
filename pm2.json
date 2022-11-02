@@ -1,0 +1,19 @@
+{
+    "name": "Post_Tool",
+    "name_//": "应用名称",
+    "script": "E:\\OtherSources\\LiteWebsite\\node_web\\run.js",
+    "script_//": "实际启动脚本",
+    "cwd": "E:\\OtherSources\\LiteWebsite\\node_web",
+    "cwd_//": "当前工作路径",
+    "args": "-c E:\\OtherSources\\DevNTool\\config.json",
+    "ignore_watch": [
+        "Log",".git"
+    ],
+    "watch_options": {
+        "followSymlinks": false
+    },
+    "env": {
+        "NODE_ENV": "production"
+    },
+    "env_production_": "环境参数，当前指定为生产环境"
+}
