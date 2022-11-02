@@ -4,8 +4,9 @@
 <head>
     <title>接口调试工具</title>
     <style>
+        *{box-sizing: border-box;}
         #main{
-            height: 45rem;
+            height:84vh;position: relative;
         }        
         .flexMe {
             display: flex;
@@ -15,7 +16,7 @@
             width:100%;
         }
         .col{
-            border:1px dashed gray;height: 100%;border-radius: 15px 15px;
+            border:1px dashed gray;height: 100%;border-radius: 5px 5px;
             flex-grow: 2;margin: 10px 10px;min-width: 200px;
         }
         .main-col{
@@ -25,10 +26,12 @@
             font-size: 14px;
             padding: 5px 5px;
             margin: 15px 20px;
-            width: 93%;
+            width: 98%;
         }
+        .auto-zoom{height: 48px;}
+        .auto-zoom:focus{height: 250px;}
         #result{
-            background-color: #F5F5F5;height: 50%;border-radius: 10px 10px;overflow-x: auto;
+            background-color: #F5F5F5;height: 60%;border-radius: 10px 10px;overflow-x: auto;position: relative;
         }
         #result .rsl_board{display: none;}
         #result #rsl_response{display: block;}
@@ -39,6 +42,8 @@
         #result .rsl_menu li{            
             padding: 2px 10px;list-style: none;cursor: pointer;
         }
+        #result .rsl_menu .active{background-color: #fff;}
+        .copyright{margin-top: 2vh;}
 
 .webkit-scrollbar::-webkit-scrollbar {
     width: 9px;
@@ -70,14 +75,14 @@
 </head>
 
 <body class="webkit-scrollbar">
-    <div style="text-align:center;"><h3>接口调试工具</h3></div>
+    <div style="text-align:center;"><h1>接口调试工具</h1></div>
     <div id="main" class="flexMe">
         <div class="col main-col">
             <hr />
             <form id="form1" enctype="application/x-www-form-urlencoded">
                 <input name="target_url" type="text" placeholder="请输入URL" class="form-control" />
 
-                <textarea name="target_param" class="form-control" placeholder="POST参数" rows="3"></textarea>
+                <textarea name="target_param" class="form-control auto-zoom" placeholder="POST参数" rows="3"></textarea>
                 <textarea id="headerInfo" name="headerInfo" class="form-control" placeholder="自定义Header" rows="3" style="display:none;"></textarea>
                 <div>
                     <select name="proxy_type" id="proxy_type" class="form-control" style="margin-top:14px;float:left;width:20%">
@@ -90,30 +95,31 @@
                         <option value="patch">PATCH</option>
                         <option value="options">OPTIONS</option>
                     </select>
-                    <select name="code" id="code" class="form-control" style="margin-top:13px;margin-left:10px;float:left;width:38%">
+                    <select name="code" id="code" class="form-control" style="margin-top:13px;margin-left:10px;float:left;width:38%;">
                         <option value="utf8">UTF-8 --接口输出的编码</option>
                         <option value="gbk">GBk --接口输出的编码</option>
                         <option value="gb2312">GB2312 --接口输出的编码</option>
                     </select>
-                    <select name="iscompress" id="iscompress" class="form-control" disabled="disabled" style="margin-top:10px;margin-left:10px;float:left;width:30.5%">
+                    <select name="iscompress" id="iscompress" class="form-control" disabled="disabled" style="margin-top:10px;margin-left:10px;float:left;width:30.5%;display: none;">
                         <option value="1">自动解压(gzip,deflate,flate)</option>
                         <option value="2">不解压</option>
                     </select>
                 </div>
                 <div class="flexMe">
-                    <button type="button" id="btn" class="form-control" style="flex-grow: 6;width:60%">提交</button>
+                    <button type="button" id="btn" class="form-control" style="flex-grow: 6;width:60%;background-color: #3d8ac7;color: white;">发送请求</button>
                     <button type="button" id="hightForm" class="form-control" style="flex-grow: 1;width: 20%;">自定义Header</button>
                     <button type="reset" id="clearform" class="form-control" style="flex-grow: 1;width: 20%;margin-right: 40px;">清空表单</button>
                 </div>
             </form>
+            <hr />
 
-            <div id="result" class="form-control">
+            <div id="result" class="form-control webkit-scrollbar">
                 <div class="rsl_menu">
                     <ul class="flexMe">
-                        <li id="Rsl_r" data-target="rsl_response">Result</li>
-                        <li id="Rsl_f" data-target="rsl_format">RslFormat</li>
-                        <li id="Rsl_h" data-target="rsl_header">Header</li>
-                        <li id="Rsl_s" data-target="rsl_summary">Summary</li>
+                        <li id="Rsl_r" data-target="rsl_response" class="active">响应结果</li>
+                        <li id="Rsl_f" data-target="rsl_format">格式化结果</li>
+                        <li id="Rsl_h" data-target="rsl_header">请求头信息</li>
+                        <li id="Rsl_s" data-target="rsl_summary">统计信息</li>
                     </ul>
                 </div>
                 <div class="rsl_board" id="rsl_response"></div>
@@ -126,16 +132,18 @@
             <ul>
                 <li>本地缓存调试记录</li>
                 <li>UrlEncode编码/解码</li>
+                <li><a href="IconFontViewer.html" target="_blank">IconFont 查看工具</a></li>
             </ul>
         </div>
     </div>
-    <div style="text-align: center;">
-        &copy;2018 <a href="//www.vmwed.com">VMWed.COM</a> 
+    <div style="text-align: center;" class="copyright">
+        &copy;2018 <a href="http://www.vmwed.com">VMWed.COM</a> 
     </div>
 
 </body>
 </body>
 <script>
+    //自定义header按钮点击
     document.getElementById("hightForm").addEventListener("click", function (event) {
         var h = document.getElementById("headerInfo");
         var dpl = h.style.display;
@@ -151,7 +159,7 @@
             ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}
         };
 
-        console.log(d);
+        console.log("请求信息:",d);
         Ajax("/Plugin/Proxy",d);
 
         document.getElementById("rsl_response").innerText = 'loading...';
@@ -161,7 +169,11 @@
         return false;
     });
 
+    //结果显示页签的切换
     function ResultSwitch(e){
+        document.querySelector(".rsl_menu .active")?.removeAttribute("class");
+        this.setAttribute("class","active");
+
         var tg = this.getAttribute("data-target");
         var b = document.getElementsByClassName("rsl_board");
         for(var i=0;i< b.length;i++){
