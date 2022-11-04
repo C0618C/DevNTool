@@ -35,9 +35,6 @@
         }
         #result .rsl_board{display: none;}
         #result #rsl_response{display: block;}
-        .rsl_board pre{
-            overflow-x: auto;max-width: 800px;
-        }
         #result .rsl_menu ul{width: 80%;margin-top:5px;margin-left: -25px;}
         #result .rsl_menu li{            
             padding: 2px 10px;list-style: none;cursor: pointer;
@@ -104,6 +101,10 @@
                         <option value="1">自动解压(gzip,deflate,flate)</option>
                         <option value="2">不解压</option>
                     </select>
+                    <select name="contentType" id="contentType" class="form-control" style="margin-top:10px;margin-left:10px;float:left;width:30.5%;">
+                        <option value="x-www-four-urlencoded">Content-type : application/x-www-four-urlencoded </option>
+                        <option value="json">Content-type : application/json</option>
+                    </select>
                 </div>
                 <div class="flexMe">
                     <button type="button" id="btn" class="form-control" style="flex-grow: 6;width:60%;background-color: #3d8ac7;color: white;">发送请求</button>
@@ -118,13 +119,13 @@
                     <ul class="flexMe">
                         <li id="Rsl_r" data-target="rsl_response" class="active">响应结果</li>
                         <li id="Rsl_f" data-target="rsl_format">格式化结果</li>
-                        <li id="Rsl_h" data-target="rsl_header">请求头信息</li>
+                        <li id="Rsl_h" data-target="rsl_queryinfo">请求相关信息</li>
                         <li id="Rsl_s" data-target="rsl_summary">统计信息</li>
                     </ul>
                 </div>
                 <div class="rsl_board" id="rsl_response"></div>
                 <div class="rsl_board" id="rsl_format"></div>
-                <div class="rsl_board" id="rsl_header"></div>
+                <div class="rsl_board" id="rsl_queryinfo"></div>
                 <div class="rsl_board" id="rsl_summary"></div>
             </div>
         </div>
@@ -156,7 +157,7 @@
             body:ParseForm("form1")
             ,success : SuccessHandler
             ,method:"POST"
-            ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}
+            ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}//与本地服务的协议
         };
 
         console.log("请求信息:",d);
@@ -164,7 +165,7 @@
 
         document.getElementById("rsl_response").innerText = 'loading...';
         document.getElementById("rsl_format").innerHTML = "";
-        document.getElementById("rsl_header").innerHTML = "";
+        document.getElementById("rsl_queryinfo").innerHTML = "";
         document.getElementById("rsl_summary").innerHTML = "";
         return false;
     });
@@ -222,12 +223,20 @@
         var rslObj = JSON.parse(d);
         rslObj.rsl = decodeURIComponent(rslObj.rsl);
         document.getElementById("rsl_response").innerText = rslObj.rsl;
-        document.getElementById("rsl_format").innerHTML = "<pre>"+rslObj.rsl+"</pre>";
-        document.getElementById("rsl_header").innerHTML = "<pre>"+decodeURIComponent(rslObj._header)+"</pre>";
-        document.getElementById("rsl_header").innerHTML += "<pre>"+decodeURIComponent(rslObj.headers)+"</pre>";
+        if(/^\s?[\[{]+/.test(rslObj.rsl)){
+            //判断为JSON，美化格式
+            document.getElementById("rsl_format").innerHTML = "<pre>"+JSON.stringify(JSON.parse(rslObj.rsl),null,4)+"</pre>";
+        }else{
+            document.getElementById("rsl_format").innerHTML = "<pre>"+rslObj.rsl+"</pre>";
+        }
+        document.getElementById("rsl_queryinfo").innerHTML = "<pre>"+decodeURIComponent(rslObj._header)+"</pre>";
+        document.getElementById("rsl_queryinfo").innerHTML += "<pre>"+decodeURIComponent(rslObj.headers)+"</pre>";
+        document.getElementById("rsl_queryinfo").innerHTML += "<hr/><pre>"+decodeURIComponent(rslObj.paramBody)+"</pre>";
         document.getElementById("rsl_summary").innerHTML = "<pre>接口响应耗时："+rslObj.tsMS+"ms</pre>";
     }
-
+    /**
+     * 页面表单转成代理接口的参数
+     */
     function ParseForm(id){
         var f=new FormData(document.getElementById(id));
         var rsl = "";

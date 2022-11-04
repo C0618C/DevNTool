@@ -1,8 +1,11 @@
 {
-    "WebRoot": "E:\\Sources\\DevNTool",
+    "WebRoot": "E:\\OtherSources\\DevNTool",
+    "Plugins":"/server/",
     "Port": 8888,
+    "Log":{"Log2Console":["all"]},
 	"Default": [
         "index.html",
         "HttpTest.html"
-    ]
+    ],
+    "https":false
 }
