@@ -42,6 +42,9 @@
         #result .rsl_menu .active{background-color: #fff;}
         .copyright{margin-top: 2vh;}
 
+        #historyList{list-style: none;padding: 5px 10px;overflow-y: auto;}
+        #historyList li{word-break: break-all;cursor: pointer;border-radius: 10px 10px;border: 1px solid gray;padding: 10px 15px;margin: 2px 2px;}
+
 .webkit-scrollbar::-webkit-scrollbar {
     width: 9px;
     height: 9px
@@ -102,8 +105,8 @@
                         <option value="2">不解压</option>
                     </select>
                     <select name="contentType" id="contentType" class="form-control" style="margin-top:10px;margin-left:10px;float:left;width:30.5%;">
-                        <option value="x-www-four-urlencoded">Content-type : application/x-www-four-urlencoded </option>
-                        <option value="json">Content-type : application/json</option>
+                        <option value="x-www-four-urlencoded">Content-Type : application/x-www-four-urlencoded </option>
+                        <option value="json">Content-Type : application/json</option>
                     </select>
                 </div>
                 <div class="flexMe">
@@ -129,11 +132,14 @@
                 <div class="rsl_board" id="rsl_summary"></div>
             </div>
         </div>
-        <div class="col">
+        <div class="col" style="max-width: 300px;">
             <ul>
-                <li>本地缓存调试记录</li>
                 <li>UrlEncode编码/解码</li>
                 <li><a href="IconFontViewer.html" target="_blank">IconFont 查看工具</a></li>
+            </ul>
+            <hr/>
+            <h3 style="text-align: center;">历史执行结果</h3>
+            <ul id="historyList">
             </ul>
         </div>
     </div>
@@ -144,6 +150,10 @@
 </body>
 </body>
 <script>
+    (function(){
+        SettingHitory();
+    })();
+
     //自定义header按钮点击
     document.getElementById("hightForm").addEventListener("click", function (event) {
         var h = document.getElementById("headerInfo");
@@ -160,7 +170,6 @@
             ,headers:{"Content-type":"application/x-www-four-urlencoded;charset=UTF-8"}//与本地服务的协议
         };
 
-        console.log("请求信息:",d);
         Ajax("/Plugin/Proxy",d);
 
         document.getElementById("rsl_response").innerText = 'loading...';
@@ -219,7 +228,12 @@
         }
     }
 
+    /**
+     * 请求接口后的回调执行
+     */
     function SuccessHandler(d){
+        CacheAppInfo();//记录这次的参数
+
         var rslObj = JSON.parse(d);
         rslObj.rsl = decodeURIComponent(rslObj.rsl);
         document.getElementById("rsl_response").innerText = rslObj.rsl;
@@ -244,6 +258,60 @@
             rsl = rsl+"&"+p[0]+"="+encodeURIComponent(p[1]);
         }
         return rsl;
+    }
+
+    /**
+     * 将当前的申请缓存起来
+     */
+    function CacheAppInfo(){
+        let hisObj = {};
+        try{
+            let hisApp = localStorage.getItem("History")||"{}";
+            hisObj = JSON.parse(hisApp);
+        }catch(e){
+        }
+        if(!hisObj.count) hisObj.count=1;
+
+        let curUrl = document.querySelector("[name=target_url]").value.trim();
+        let setting={
+            url:curUrl,
+            param:document.querySelector("[name=target_param]").value,
+            header:document.querySelector("[name=headerInfo]").value,
+            order:hisObj.count
+        }
+        hisObj.count++;
+        hisObj[curUrl]=setting;
+        localStorage.setItem("History",JSON.stringify(hisObj));
+
+        SettingHitory();
+    }
+    /**
+     * 初始化缓存
+     */
+    function SettingHitory(){
+        let list = document.querySelector("#historyList");
+        let hisObj = [];
+        try{
+            let hisApp = localStorage.getItem("History")||"{}";
+            let temp = JSON.parse(hisApp);
+            list.innerHTML="";
+            delete temp.count
+            for(let s in temp) hisObj.push(temp[s]);
+            hisObj.sort((r,l)=>l.order-r.order);
+        }catch(e){
+        }
+
+        for(let s of hisObj){
+            let liObj=document.createElement("li");
+            liObj.innerText=s.url;
+            liObj.setAttribute("title",s.url);
+            liObj.addEventListener("click",(event)=>{
+                document.querySelector("[name=target_url]").value=s.url;
+                document.querySelector("[name=target_param]").value=s.param;
+                document.querySelector("[name=headerInfo]").value=s.header;
+            });
+            list.appendChild(liObj);
+        }
     }
 </script>
 
