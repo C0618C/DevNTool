@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Url Decode</title>
+        <style>
+            *{box-sizing: border-box;}
+            h1{text-align: center;}
+            .main{width: 99vw;height: 89vh; display: flex;flex-direction: column;}
+            .main textarea{width:96%;height: 38vh;margin: 10px 15px;align-self: center;font-size: 1.2em;}
+            .toolbar{display: flex;flex-direction: row;padding: 5px 2vw;}
+            .toolbar input[type=button]{align-self: center;flex-grow: 2;padding: 5px 5px;}
+        </style>
+    </head>
+    <body>
+        <h1>UrlEncode编码/解码</h1>
+        <div class="main">
+            <textarea name="before" id="before" placeholder="编码前"></textarea>
+            <div class="toolbar">
+                <input type="button" name="encode" id="encode" value="🔻编码🔻"/>
+                <input type="button" name="format" id="format" value="在&符号前换行"/>
+                <input type="button" name="decode" id="decode" value="🔺解码🔺"/>
+            </div>
+            <textarea name="after"  id="after" placeholder="编码后"></textarea>
+        </div>
+        <script>
+            document.getElementById("encode").addEventListener("click",()=>{
+                document.getElementById("after").value=Encode(document.getElementById("before").value)
+            });
+            document.getElementById("format").addEventListener("click",()=>{
+                document.getElementById("before").value=Format(document.getElementById("before").value)
+                document.getElementById("after").value=Format(document.getElementById("after").value)
+            });
+            document.getElementById("decode").addEventListener("click",()=>{
+                document.getElementById("before").value=Decode(document.getElementById("after").value)
+            }); 
+            
+            function Decode(str){
+                return decodeURIComponent(str);
+            }
+            function Encode(str){
+                return encodeURIComponent(str);
+            }
+            function Format(str){
+                return str.replace(/&/g,"\n&");
+            }
+        </script>
+    </body>
+</html>
