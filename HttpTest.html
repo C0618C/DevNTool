@@ -161,8 +161,10 @@
         h.style.display = dpl == "none" ? "block" : "none";
     });
 
-    //TODO:代理工具 POST参数的解释
+    //点击请求按钮
     document.getElementById("btn").addEventListener("click",function(event){
+        CacheAppInfo();//记录这次的参数
+        
         var d ={
             body:ParseForm("form1")
             ,success : SuccessHandler
@@ -232,8 +234,6 @@
      * 请求接口后的回调执行
      */
     function SuccessHandler(d){
-        CacheAppInfo();//记录这次的参数
-
         var rslObj = JSON.parse(d);
         rslObj.rsl = decodeURIComponent(rslObj.rsl);
         document.getElementById("rsl_response").innerText = rslObj.rsl;
@@ -246,7 +246,7 @@
         document.getElementById("rsl_queryinfo").innerHTML = "<pre>"+decodeURIComponent(rslObj._header)+"</pre>";
         document.getElementById("rsl_queryinfo").innerHTML += "<pre>"+decodeURIComponent(rslObj.headers)+"</pre>";
         document.getElementById("rsl_queryinfo").innerHTML += "<hr/><pre>"+decodeURIComponent(rslObj.paramBody)+"</pre>";
-        document.getElementById("rsl_summary").innerHTML = "<pre>接口响应耗时："+rslObj.tsMS+"ms</pre>";
+        document.getElementById("rsl_summary").innerHTML = "<pre>接口响应耗时："+rslObj.tsMS+"ms —— ["+(rslObj.tsMS/1000).toFixed(1)+"s]</pre>";
     }
     /**
      * 页面表单转成代理接口的参数
