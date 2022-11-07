@@ -17,7 +17,7 @@ exports.Handler = function (request, response, path, event) {
 
         param.headers = GetParamSetting(param.headerInfo);//格式化Header，转化为参数对象
         //请求参数兼容 key:value格式
-        if (/^[^:]+:[^:]+/.test(param.target_param)) FormatKeyValueParam(param);
+        if (/([^:]+:)\s?\n([^:\n]+\n)/g.test(param.target_param)) FormatKeyValueParam(param);
 
         ProxyData(response, param.target_url, param.target_param, param);
     });
