@@ -132,19 +132,19 @@
                 <div class="rsl_board" id="rsl_summary"></div>
             </div>
         </div>
-        <div class="col" style="max-width: 300px;">
+        <div class="col" style="max-width: 300px;overflow-y: hidden;">
             <ul>
                 <li><a href="URLEncode.html" target="_blank">UrlEncode编码/解码</a></li>
                 <li><a href="IconFontViewer.html" target="_blank">IconFont 查看工具</a></li>
             </ul>
             <hr/>
             <h3 style="text-align: center;">历史执行结果</h3>
-            <ul id="historyList">
+            <ul id="historyList" style="max-height: 90%;" class="webkit-scrollbar" >
             </ul>
         </div>
     </div>
     <div style="text-align: center;" class="copyright">
-        &copy;2018 <a href="http://www.vmwed.com">VMWed.COM</a> 
+        ?2018 <a href="http://www.vmwed.com">VMWed.COM</a>
     </div>
 
 </body>
@@ -164,7 +164,7 @@
     //点击请求按钮
     document.getElementById("btn").addEventListener("click",function(event){
         CacheAppInfo();//记录这次的参数
-        
+       
         var d ={
             body:ParseForm("form1")
             ,success : SuccessHandler
@@ -190,7 +190,7 @@
         var b = document.getElementsByClassName("rsl_board");
         for(var i=0;i< b.length;i++){
             if(b.item(i).id == tg) continue;
-            b.item(i).style.display="none"; 
+            b.item(i).style.display="none";
         }
         b.namedItem(tg).style.display="block";
     }
@@ -301,16 +301,38 @@
         }catch(e){
         }
 
-        for(let s of hisObj){
-            let liObj=document.createElement("li");
-            liObj.innerText=s.url;
-            liObj.setAttribute("title",s.url);
-            liObj.addEventListener("click",(event)=>{
-                document.querySelector("[name=target_url]").value=s.url;
-                document.querySelector("[name=target_param]").value=s.param;
-                document.querySelector("[name=headerInfo]").value=s.header;
-            });
-            list.appendChild(liObj);
+        let ListMap=new Map();
+        for(let x of hisObj){
+            let u = new URL(x.url);
+            let groupArray = ListMap.get(u.host)||[];
+            groupArray.push(x);
+            ListMap.set(u.host,groupArray);
+        }
+        for(let [key,value] of ListMap.entries()){          
+            let titleObj=document.createElement("li");
+            titleObj.innerText=key;
+           
+            let curHostObj=document.createElement("ul");
+            for(let s of value){
+                let liObj=document.createElement("li");
+                liObj.innerText=s.url;
+                liObj.setAttribute("title",s.url);
+                liObj.addEventListener("click",(event)=>{
+                    document.querySelector("[name=target_url]").value=s.url;
+                    document.querySelector("[name=target_param]").value=s.param;
+                    document.querySelector("[name=headerInfo]").value=s.header;
+                });
+                curHostObj.appendChild(liObj);
+            }
+            curHostObj.style.display="none";
+            curHostObj.className="urlItemGroup";
+            titleObj.addEventListener("click",(event)=>{
+                // list.
+                list.querySelectorAll(".urlItemGroup").forEach(u=>u.style.display="none");
+                curHostObj.style.display="";                
+            })
+            titleObj.appendChild(curHostObj);
+            list.appendChild(titleObj);
         }
     }
 </script>

@@ -35,7 +35,11 @@
             }); 
             
             function Decode(str){
-                return decodeURIComponent(str);
+              try{
+                  return decodeURIComponent(str);
+              }catch(e){
+                  return unescape(str);
+              }
             }
             function Encode(str){
                 return encodeURIComponent(str);
