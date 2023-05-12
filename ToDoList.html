@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>📌待办清单</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #FFE4C4;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #FFFACD;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+            border-radius: 15px 15px;
+            margin-top: 20px;
+            min-height: 93vh;
+        }
+
+        h1 {
+            font-size: 36px;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        #toolbar {
+            height: 30px;
+        }
+
+        #toolbar button {
+            float: right;
+            background-color: transparent;
+            margin: 2px 2px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #todolist li {
+            font-size: 24px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #todolist li {
+            cursor: pointer;
+            padding-left: 40px;
+        }
+
+        #todolist li::before {
+            content: "🔲";
+            color: #aaa;
+            margin-right: 30px;
+            margin-left: -20px;
+        }
+
+        #todolist li.flag .decoration::before {
+            content: "🚩";
+            margin-left: -33px;
+        }
+
+        #todolist li.active {
+            text-decoration: line-through;
+        }
+
+        #todolist li.active:before {
+            content: "☑️";
+            /*✅*/
+            color: #4CAF50;
+        }
+
+
+        #todolist li:not(#toAdd).opt {
+            pointer-events: none;
+        }
+
+        #todolist li:not(#toAdd).opt span.opt {
+            float: right;
+            pointer-events: auto;
+        }
+
+        #todolist li:not(#toAdd).opt span.del::before {
+            content: "🗑️";
+        }
+
+        #todolist li:not(#toAdd).opt span.tohide::before {
+            content: "👁️‍🗨️";
+        }
+
+        #todolist li:not(#toAdd).opt span.flag::before {
+            content: "🚩";
+        }
+
+        #todolist #toAdd::before {
+            content: "➕";
+        }
+
+
+        /* 新增相关 */
+        #todolist #toAdd {
+            color: gray;
+            padding: 0px 50px;
+            height: 52px;
+        }
+
+        #toAdd #newTodoJob {
+            width: 88%;
+            height: 50px;
+            border: none;
+            font-size: 24px;
+            background-color: transparent;
+        }
+
+
+        #todolist:not(.tempView) li.hide {
+            display: none;
+        }
+
+        #todolist.tempView li.hide {
+            color: #eaeaea;
+            text-shadow: 1px 1px 1px #aaa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📌待办清单✨✨✨</h1>
+        <div id="toolbar">&nbsp;
+            <button type="button" id="clearList">🧹清空列表</button>
+            <button type="button" id="showAll">🔍显示所有已隐藏</button>
+            <button type="button" id="hideFinish">👁️‍🗨️隐藏已完成</button>
+        </div>
+        <ul id="todolist">
+            <li id="toAdd" for="newTodoJob">
+                <input type="text" placeholder="添加..." id="newTodoJob" />
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const DATANAME = "MyTODOList";
+        const OPT_TOOLS = `<span class="opt del"></span><span class="opt tohide"></span><span class="opt flag"></span>`;
+
+        /*
+         * 从本地存储中加载待办列表并渲染
+         */
+        function LoadSourcFromStorage() {
+            let data = localStorage.getItem(DATANAME);
+            if (!data) return;
+
+            let endOfList = document.querySelector("#toAdd");
+            var dataObj = JSON.parse(data);
+            for (let l of dataObj) {
+                endOfList.insertAdjacentHTML("beforeBegin", `<li class="${
+                    l.isDone ? "active" : ""
+                } ${
+                    l.isFlag ? "flag" : ""
+                } ${
+                    l.isHide ? "hide" : ""
+                }"><span class="decoration"></span>${l.text}${OPT_TOOLS}</li>`)
+            }
+        }
+
+        /*
+         * 保存到存储之中
+         */
+        function SaveToStorage() {
+            let dataObj = [];
+            let myList = document.querySelectorAll("#todolist li:not(#toAdd)");
+            for (let l of myList) {
+                dataObj.push({
+                    text: l.innerText,
+                    isDone: l.classList.contains("active"),
+                    isFlag: l.classList.contains("flag"),
+                    isHide: l.classList.contains("hide")
+                })
+            }
+
+            localStorage.setItem(DATANAME, JSON.stringify(dataObj));
+        }
+
+        (() => {
+            LoadSourcFromStorage();
+
+            let addObj = document.querySelector("#toAdd input");
+            //编辑完成添加新条目
+            addObj.addEventListener("blur", AddANewItem);
+            addObj.addEventListener("keyup", (t) => {
+                if (t.key === "Enter") AddANewItem(t);
+            });
+
+            function AddANewItem(t) {
+                let newItem = t.target.value;
+                if (newItem == "") return;
+                document.querySelector("#toAdd").insertAdjacentHTML("beforeBegin", `<li><span class="decoration"></span>${newItem}${OPT_TOOLS}</li>`);
+                SaveToStorage();
+                t.target.value = "";
+                t.target.focus();
+            }
+
+
+            let myList = document.querySelector("#todolist");
+            //监控整个列表的点击
+            myList.addEventListener("click", (e) => {
+                let curItem = e.target;
+                //点击了列表的操作工具按钮
+                if (curItem.nodeName === "SPAN") return DoOptItem(curItem);
+
+                if (curItem.nodeName != "LI" || curItem.id == "toAdd" || curItem.classList.contains("opt")) return;
+                //点击设置已办
+                curItem.classList.toggle("active");
+                SaveToStorage();
+            });
+            //右击列表增加操作菜单
+            myList.addEventListener("contextmenu", (e) => {
+                e.preventDefault();
+                let curItem = e.target;
+                if ((curItem.nodeName != "LI" && curItem.nodeName != "SPAN") || curItem.id == "toAdd") return;
+                if (curItem.nodeName == "SPAN") curItem = curItem.parentElement;
+
+                curItem.classList.toggle("opt");
+            });
+
+
+            let btShowAll = document.querySelector("#showAll");
+            btShowAll.addEventListener("click", () => {
+                myList.classList.toggle("tempView");
+            });
+            let btHideFinish = document.querySelector("#hideFinish");
+            btHideFinish.addEventListener("click", () => {
+                let finishList = document.querySelectorAll("#todolist li:not(hide).active");
+                for (var i of finishList) i.classList.add("hide");
+                SaveToStorage();
+            });
+            let btClearList = document.querySelector("#clearList");
+            btClearList.addEventListener("click", () => {
+                let rsl = confirm(`删除后将不可恢复，是否清空整个列表？`);
+                if (!rsl) return;
+                let finishList = document.querySelectorAll("#todolist li:not(#toAdd)");
+                let nList = [...finishList];
+                for (let i of nList) i.remove();
+                SaveToStorage();
+            });
+
+
+            /*
+             * 设置操作菜单
+            */
+            function DoOptItem(element) {
+                if (element.classList.contains("del")) {
+                    let rsl = confirm(`删除后将不可恢复，是否删除：\n\n${element.parentElement.innerText}`);
+                    if (rsl) element.parentElement.remove();
+                    SaveToStorage();
+                } else if (element.classList.contains("tohide")) {
+                    element.parentElement.classList.add("hide");
+                    SaveToStorage();
+                } else if (element.classList.contains("flag")) {
+                    element.parentElement.classList.toggle("flag");
+                    element.parentElement.classList.remove("opt");
+                    SaveToStorage();
+                }
+            }
+        })();
+    </script>
+</body>
+
+</html>
