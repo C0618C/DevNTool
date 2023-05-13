@@ -48,7 +48,7 @@
         #todolist li {
             font-size: 24px;
             padding: 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #dcdcdc;
             align-items: center;
             justify-content: space-between;
         }
@@ -102,6 +102,10 @@
             content: "🚩";
         }
 
+        #todolist li:not(#toAdd).opt span.edit::before {
+            content: "✒";
+        }
+
         #todolist #toAdd::before {
             content: "➕";
         }
@@ -151,7 +155,11 @@
 
     <script>
         const DATANAME = "MyTODOList";
-        const OPT_TOOLS = `<span class="opt del"></span><span class="opt tohide"></span><span class="opt flag"></span>`;
+        const OPT_TOOLS = `<span class="opt del"></span>
+        <span class="opt tohide"></span>
+        <span class="opt edit"></span>
+        <span class="opt flag"></span>
+        `;
 
         /*
          * 从本地存储中加载待办列表并渲染
@@ -163,13 +171,10 @@
             let endOfList = document.querySelector("#toAdd");
             var dataObj = JSON.parse(data);
             for (let l of dataObj) {
-                endOfList.insertAdjacentHTML("beforeBegin", `<li class="${
-                    l.isDone ? "active" : ""
-                } ${
-                    l.isFlag ? "flag" : ""
-                } ${
-                    l.isHide ? "hide" : ""
-                }"><span class="decoration"></span>${l.text}${OPT_TOOLS}</li>`)
+                endOfList.insertAdjacentHTML("beforeBegin", `<li class="${l.isDone ? "active" : ""
+                    } ${l.isFlag ? "flag" : ""
+                    } ${l.isHide ? "hide" : ""
+                    }"><span class="decoration"></span><span class="content">${l.text}</span>${OPT_TOOLS}</li>`)
             }
         }
 
@@ -201,10 +206,13 @@
                 if (t.key === "Enter") AddANewItem(t);
             });
 
+            /*
+             * 添加一个新条目
+             */
             function AddANewItem(t) {
                 let newItem = t.target.value;
                 if (newItem == "") return;
-                document.querySelector("#toAdd").insertAdjacentHTML("beforeBegin", `<li><span class="decoration"></span>${newItem}${OPT_TOOLS}</li>`);
+                document.querySelector("#toAdd").insertAdjacentHTML("beforeBegin", `<li><span class="decoration"></span><span class="content">${newItem}</span>${OPT_TOOLS}</li>`);
                 SaveToStorage();
                 t.target.value = "";
                 t.target.focus();
@@ -215,13 +223,18 @@
             //监控整个列表的点击
             myList.addEventListener("click", (e) => {
                 let curItem = e.target;
+                if (curItem.classList.contains("content")) curItem = curItem.parentElement;
+
                 //点击了列表的操作工具按钮
                 if (curItem.nodeName === "SPAN") return DoOptItem(curItem);
 
                 if (curItem.nodeName != "LI" || curItem.id == "toAdd" || curItem.classList.contains("opt")) return;
+                if (curItem.querySelector(".content").getAttribute("contenteditable") === "true") return;
+
                 //点击设置已办
                 curItem.classList.toggle("active");
                 SaveToStorage();
+                e.preventDefault();
             });
             //右击列表增加操作菜单
             myList.addEventListener("contextmenu", (e) => {
@@ -232,6 +245,31 @@
 
                 curItem.classList.toggle("opt");
             });
+            myList.addEventListener("dblclick", (e) => {
+                let curItem = e.target;
+                if (curItem.classList.contains("content")) EditItem(curItem);
+                //if ((curItem.nodeName != "LI" || curItem.id == "toAdd" || curItem.classList.contains("opt"))) return;
+                //EditItem(curItem);
+                e.preventDefault();
+            });
+
+            //设置为修改状态
+            function EditItem(targetLi) {
+                let target = targetLi;
+                if (!target.classList.contains("content")) target = targetLi.querySelector(".content");
+                target.setAttribute("contenteditable", true);
+                target.addEventListener("blur", (e) => {
+                    target.setAttribute("contenteditable", false);
+                    SaveToStorage();
+                });
+                target.addEventListener("keyup", (t) => {
+                    if (t.key === "Enter") {
+                        target.setAttribute("contenteditable", false);
+                        target.innerText = target.innerText.replace("\n", "");
+                        SaveToStorage();
+                    }
+                });
+            }
 
 
             let btShowAll = document.querySelector("#showAll");
@@ -264,12 +302,18 @@
                     if (rsl) element.parentElement.remove();
                     SaveToStorage();
                 } else if (element.classList.contains("tohide")) {
-                    element.parentElement.classList.add("hide");
+                    element.parentElement.classList.toggle("hide");
+                    element.parentElement.classList.remove("opt");
                     SaveToStorage();
                 } else if (element.classList.contains("flag")) {
                     element.parentElement.classList.toggle("flag");
                     element.parentElement.classList.remove("opt");
                     SaveToStorage();
+                } else if (element.classList.contains("edit")) {
+                    //element.parentElement.classList.toggle("flag");
+                    element.parentElement.classList.remove("opt");
+                    EditItem(element.parentElement);
+                    //SaveToStorage();
                 }
             }
         })();
