@@ -3,13 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>📌待办清单</title>
+    <title>📌待办清单--v1.0.0</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
             background-color: #FFE4C4;
+            position: relative;
         }
 
         .container {
@@ -65,13 +66,14 @@
             margin-left: -20px;
         }
 
-        #todolist li.flag .decoration::before {
+        #todolist li.flag .decoration::after {
             content: "🚩";
             margin-left: -33px;
         }
 
         #todolist li.active {
             text-decoration: line-through;
+            color: gray;
         }
 
         #todolist li.active:before {
@@ -103,7 +105,7 @@
         }
 
         #todolist li:not(#toAdd).opt span.edit::before {
-            content: "✒";
+            content: "✒️";
         }
 
         #todolist #toAdd::before {
@@ -135,12 +137,28 @@
             color: #eaeaea;
             text-shadow: 1px 1px 1px #aaa;
         }
+
+        .copyright {
+            text-align: center;
+            position: relative;
+            bottom: -10px;
+            color: gray;
+            margin-bottom: 10px;
+        }
+
+        @media print {
+            h1{font-size: 24px;}
+            .container{min-height: auto;}
+            #todolist li {font-size: 16px;}
+            #toolbar,#toAdd {display: none;}
+            .copyright{bottom: 0px;right: 12px;color: gray !important;position: fixed;}
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>📌待办清单✨✨✨</h1>
+        <h1>📌&nbsp;&nbsp;待办清单✨⭐️✨</h1>
         <div id="toolbar">&nbsp;
             <button type="button" id="clearList">🧹清空列表</button>
             <button type="button" id="showAll">🔍显示所有已隐藏</button>
@@ -152,6 +170,7 @@
             </li>
         </ul>
     </div>
+    <div class="copyright">MyTODOList v<var>1.0.0</var> © Vmwed.com</div>
 
     <script>
         const DATANAME = "MyTODOList";
