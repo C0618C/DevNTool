@@ -281,7 +281,7 @@ class GitHubDownloader extends EasyEvent {
                 // });
                 // dom.addEventListener("hover", () => {
                 // let fileInfo = this.fileHub.find(f => f.sha == sha);
-                if (fileInfo.status === "finish" && (fileInfo.path.endsWith("png") || fileInfo.path.endsWith("jpg")|| fileInfo.path.endsWith("gif"))) {
+                if (fileInfo.status === "finish" && (fileInfo.path.endsWith("png") || fileInfo.path.endsWith("jpg") || fileInfo.path.endsWith("gif"))) {
                     let i = new Image();
                     i.src = window.URL.createObjectURL(fileInfo.fileData);
                     document.body.appendChild(i);
@@ -317,7 +317,7 @@ class GitHubDownloader extends EasyEvent {
     ReActiveAll() {
         let eList = this.fileHub.filter(f => f.status == "error");
 
-        for (f of eList) {
+        for (let f of eList) {
             f.status = "";
         }
         this.processInfo.errorNum -= eList.length;

@@ -5,7 +5,7 @@ html, body {
 }
 body::-webkit-scrollbar { display: none}
 
-#controlPlan {display: flex;width: 96%;align-items: center;flex-direction: column;position: fixed;background-color: white;z-index: 2;top:1px;}
+#controlPlan {display: flex;width: 96%;align-items: center;flex-direction: column;position: fixed;background-color: white;z-index: 5;top:1px;}
 #controlPlan .toolPlan{ display: flex;width: 100%;padding: 5px 30px;box-sizing: border-box;font-size: 2em;}
 #controlPlan input{min-height: 30px;min-width: 60px;}
 #controlPlan .toolPlan input.projUrl{flex-grow:3;}
