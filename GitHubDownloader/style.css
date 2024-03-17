@@ -1,0 +1,49 @@
+/*全局设置*/
+html, body {
+  margin: 0;
+  padding: 0 30px;
+}
+body::-webkit-scrollbar { display: none}
+
+#controlPlan {display: flex;width: 96%;align-items: center;flex-direction: column;position: fixed;background-color: white;z-index: 2;top:1px;}
+#controlPlan .toolPlan{ display: flex;width: 100%;padding: 5px 30px;box-sizing: border-box;font-size: 2em;}
+#controlPlan input{min-height: 30px;min-width: 60px;}
+#controlPlan .toolPlan input.projUrl{flex-grow:3;}
+
+#controlPlan #jobStatus{display: flex;width: 100%;padding: 5px 30px;flex-wrap: wrap;text-wrap: nowrap;overflow: hidden;}
+#controlPlan #jobStatus .infoPlan{flex-grow: 3; min-height: 100px;border:1px solid #cccccc;width: 33%;overflow: hidden;}
+
+#main {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding: 20px 20px;
+    border: 1px dashed #cccccc;
+    min-height: 300px;
+    margin-top: 450px;
+}
+
+#main .file{
+    padding: 3px 6px;
+    border: 2px solid #C0C4CC;
+    /* min-width: 40px; */
+    overflow: hidden;
+    text-wrap: nowrap;
+    margin: 2px 1px;
+    position: relative;
+    cursor: pointer;
+}
+#main .file .bar{position: absolute;top:0px;left: 0px;height: 100%;width: 0%;z-index: -1;}
+#main .file.processing {border: 2px solid #ecf5ff;background-color: #ecf5ff;}
+#main .file.processing .bar{background-color:#409EFF ;z-index: 2;opacity: 0.5;}
+#main .file.finish .bar,#main .file.finish{background-color:#95d475 ;}
+#main .file.error .bar,#main .file.error{background-color:#F56C6C ;}
+
+#helpInfo{color: gray;}
+
+/* 切换开启后面板的显示隐藏 */
+.waiting #controlPlan #jobStatus
+/* ,.waiting .deliver */
+,.waiting #main
+/* ,.waiting #helpInfo */
+{display:none !important;}

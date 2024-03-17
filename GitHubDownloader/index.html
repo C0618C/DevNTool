@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="keywords" content="GitHub Downloader">
+    <title>GitHub Downloader</title>
+    <link href="style.css" type="text/css" rel="stylesheet" />
+</head>
+
+<body class="waiting">
+    <div id="controlPlan">
+        <h1>下载 GitHub 仓库</h1>
+        <div class="toolPlan">
+            <input type="button" id="startBt" value="开始" />
+            <input type="text" id="projInfo" class="projUrl" placeholder="请输入仓库信息" />
+        </div>
+        <div class="toolbox">
+            <input type="button" id="helpBt" value="帮助/说明" />
+            <input type="button" id="analyseBt" value="分析仓库" />
+            <input type="button" id="reavtiveBt" value="重试所有出错任务" />
+            <input type="button" id="downloadBt" value="下载已完成文件" />
+
+        </div>
+
+        <div id="jobStatus">
+            <div class="infoPlan" id="repoInfo"></div>
+            <div class="infoPlan" id="processInfo"></div>
+            <div class="infoPlan" id="fileInfo"></div>
+            <progress id="pss" value="0" min="0" max="1" style="width: 100%;"></progress>
+        </div>
+    </div>
+    
+    <div id="main">
+
+    </div>
+    <div id="helpInfo">
+        <h3>仓库地址示例</h3>
+        <p>仓库首页：https://github.com/trekhleb/javascript-algorithms</p>
+        <p>Clone地址：https://github.com/trekhleb/javascript-algorithms.git</p>
+        <p>指定分支：https://github.com/vbenjs/vue-vben-admin/tree/next</p>
+        <p>具体件夹：https://github.com/trekhleb/javascript-algorithms/tree/master/src/playground</p>
+        <p>简易格式：trekhleb/javascript-algorithms</p>
+        <p>简易指定分支：vbenjs/vue-vben-admin/next</p>
+        <p>简易指定目录：trekhleb/javascript-algorithms/master/src/playground</p>
+    </div>
+</body>
+
+<script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+
+<script type="module">
+    import { GitHubDownloader } from './GitHubDownloader.mjs'
+
+    let curDownloader = null;
+
+    function GetSource() {
+        let source = document.getElementById("projInfo");
+        if (!source.value) {
+            alert("请先提供下载的仓库地址。");
+            source.focus();
+            return null;
+        }
+
+        return source.value;
+    }
+
+    document.getElementById("startBt").addEventListener("click", () => {
+        let source = GetSource();
+        if (!source) return;
+
+        curDownloader = new GitHubDownloader(document, source);
+        curDownloader.on("render-ui", UpdateInfo);
+        curDownloader.on("click-task-bar", ClickTask);
+        curDownloader.once("update-repo-info", UpdateRepo);
+        curDownloader.Start();
+        document.body.className = "";
+    });
+
+    document.getElementById("analyseBt").addEventListener("click", () => {
+        let source = GetSource();
+        if (!source) return;
+
+        curDownloader = new GitHubDownloader(document, source);
+        curDownloader.on("click-task-bar", ClickTask);
+        curDownloader.once("update-repo-info", UpdateRepo);
+        curDownloader.once("update-repo-info", UpdateInfo);
+        curDownloader.Start(false);
+
+
+        document.body.className = "";
+    });
+
+    document.getElementById("reavtiveBt").addEventListener("click", () => {
+        curDownloader.ReActiveAll();
+    });
+    document.getElementById("downloadBt").addEventListener("click", () => {
+        curDownloader.SaveAsZip();
+    });
+
+
+    function UpdateRepo() {
+        // if (!repo)
+        let repo = curDownloader.repoInfo;
+        let infoPan = document.getElementById("repoInfo");
+        infoPan.innerHTML = `
+        <h2>仓库详情</h2>
+        <p>仓库所属：${repo.ownerName}</p>
+        <p>仓库名称：${repo.projectName}</p>
+        <p>下载分支：${repo.branchName}</p>
+        <p>下载目录：${repo.dirPath}</p>
+        `
+
+    }
+
+    function UpdateInfo() {
+        let info = curDownloader.processInfo;
+        let infoPan = document.getElementById("processInfo");
+        infoPan.innerHTML = `
+        <h2>下载进度</h2>
+        <p>总任务数：${info.allNum}</p>
+        <p>已完成数：${info.finishNum}</p>
+        <p>出错任务：${info.errorNum}</p>
+        <p>总大小：${info.totalSize}  (${(info.totalSize / 1024 / 1024).toFixed(2)}MB)</p>
+        <p>已下大小：${info.doneSize}</p>
+        `;
+        let pss = document.getElementById("pss");
+        pss.value = info.doneSize / info.totalSize;
+        // <p>正在下载：${info.downloadingNum}</p>
+
+        // infoPan.style.display = "flex";
+    }
+
+    function ClickTask(event) {
+        let fileInfo = event.detail;
+        let infoPan = document.getElementById("fileInfo");
+
+        infoPan.innerHTML = `
+        <h2>文件详情</h2>
+        <p>文件路径：${fileInfo.path}</p>
+        <p>文件大小：${fileInfo.size} (${(fileInfo.size / 1024 / 1024).toFixed(2)}MB)</p>
+        <p>下载地址：<a href="${fileInfo.dataUrl}" target="_blank">${fileInfo.dataUrl}</a></p>
+        <p>当前状态：${fileInfo.status || "等待中"}</p>
+        `;
+    }
+
+</script>
+
+</html>
