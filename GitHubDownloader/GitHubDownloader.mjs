@@ -73,7 +73,7 @@ class GitHubDownloader extends EasyEvent {
                 https://github.com/mdn/js-examples.git
                 https://github.com/mdn/js-examples/tree/main
         */
-        let cloneReg = /.*?github\.com\/([^/]+)\/(([^/]+(?=\.git|\/tree))|([^/]+))/;//情况一格式
+        let cloneReg = /.*?github\.com\/([^/]+)\/(([^/]+(?=\.git$|\/tree))|([^/]+))/;//情况一格式
         let rAndnReg = /^([^/]+)\/([^/]+)(?:\/([^/]+)(?:\/(.*))?)?$/;          //情况二 格式    匹配：仓库用户/项目名/分支/文件或文件夹路径
         if (cloneReg.test(this.downloadUrl)) {
             let matchData = this.downloadUrl.match(cloneReg);
@@ -92,15 +92,22 @@ class GitHubDownloader extends EasyEvent {
 
         //分支判断逻辑
         if (this.repoInfo.branchName) return callback?.call();
-        let branchAndTag = [...await this.FetchBranches(), ...await this.FetchTags(), { name: 'master' }]
+        let branchAndTag = [...await this.FetchBranches(), ...await this.FetchTags()]
         branchAndTag.map(item => item.name).some(branch => {
             if (this.downloadUrl.includes(branch)) {
                 this.repoInfo.branchName = branch;
             }
         });
 
-        //fix: 优化分支选择策略
-        if (!this.repoInfo.branchName) this.repoInfo.branchName = branchAndTag[0].name;//当提供的地址没有路径，设置第一个分支为默认分支
+        if (!this.repoInfo.branchName) {        //没指定分支时，选择默认分支
+            let defBranchName = ["main", "master"];
+            for (let bn of defBranchName) {
+                if (branchAndTag.some(b => b.name === bn)) {
+                    this.repoInfo.branchName = bn;
+                    break;
+                }
+            }
+        }
 
         //下载路径判断逻辑
         if (this.downloadUrl.endsWith(".git")) return callback?.call();       //下载整个仓库

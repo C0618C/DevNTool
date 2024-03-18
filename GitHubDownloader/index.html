@@ -19,7 +19,6 @@
             <input type="text" id="projInfo" class="projUrl" placeholder="请输入仓库信息" />
         </div>
         <div class="toolbox">
-            <input type="button" id="helpBt" value="帮助/说明" />
             <input type="button" id="analyseBt" value="分析仓库" />
             <input type="button" id="reavtiveBt" value="重试所有出错任务" />
             <input type="button" id="downloadBt" value="下载已完成文件" />
@@ -38,6 +37,9 @@
 
     </div>
     <div id="helpInfo">
+        <h3>说明</h3>
+        <p>本工具用于下载Github仓库，网络不好时克隆或下载仓库压缩包很容易失败。本工具实质是一个网页版的爬虫，将仓库按单个文件下载，部分文件失败了可以重试，避免一次下载不完整个仓库导致失败。降低对网络质量的依赖。</p>
+        <p>本工具支持下载整个仓库，也支持只下载特定文件夹。详细规则可看下面示例。</p>
         <h3>仓库地址示例</h3>
         <p>仓库首页：https://github.com/trekhleb/javascript-algorithms</p>
         <p>Clone地址：https://github.com/trekhleb/javascript-algorithms.git</p>
@@ -76,7 +78,7 @@
         curDownloader.on("click-task-bar", ClickTask);
         curDownloader.once("update-repo-info", UpdateRepo);
         curDownloader.Start();
-        document.body.className = "";
+        document.body.className = "downloading";
     });
 
     document.getElementById("analyseBt").addEventListener("click", () => {
@@ -88,7 +90,6 @@
         curDownloader.once("update-repo-info", UpdateRepo);
         curDownloader.once("update-repo-info", UpdateInfo);
         curDownloader.Start(false);
-
 
         document.body.className = "";
     });
@@ -104,15 +105,16 @@
     function UpdateRepo() {
         // if (!repo)
         let repo = curDownloader.repoInfo;
+        let info = curDownloader.processInfo;
         let infoPan = document.getElementById("repoInfo");
         infoPan.innerHTML = `
         <h2>仓库详情</h2>
         <p>仓库所属：${repo.ownerName}</p>
         <p>仓库名称：${repo.projectName}</p>
         <p>下载分支：${repo.branchName}</p>
-        <p>下载目录：${repo.dirPath}</p>
+        <p>下载目录：${repo.dirPath || "根目录"}</p>
+        <p>总大小：${info.totalSize}  (${(info.totalSize / 1024 / 1024).toFixed(2)}MB)</p>
         `
-
     }
 
     function UpdateInfo() {
@@ -123,7 +125,7 @@
         <p>总任务数：${info.allNum}</p>
         <p>已完成数：${info.finishNum}</p>
         <p>出错任务：${info.errorNum}</p>
-        <p>总大小：${info.totalSize}  (${(info.totalSize / 1024 / 1024).toFixed(2)}MB)</p>
+        <p>下载进度：${(info.doneSize/info.totalSize*100).toFixed(2)}%</p>
         <p>已下大小：${info.doneSize}</p>
         `;
         let pss = document.getElementById("pss");

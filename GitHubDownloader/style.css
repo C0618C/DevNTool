@@ -11,7 +11,7 @@ body::-webkit-scrollbar { display: none}
 #controlPlan .toolPlan input.projUrl{flex-grow:3;}
 
 #controlPlan #jobStatus{display: flex;width: 100%;padding: 5px 30px;flex-wrap: wrap;text-wrap: nowrap;overflow: hidden;}
-#controlPlan #jobStatus .infoPlan{flex-grow: 3; min-height: 100px;border:1px solid #cccccc;width: 33%;overflow: hidden;}
+#controlPlan #jobStatus .infoPlan{flex-grow: 3; min-height: 100px;width: 33%;overflow: hidden;}
 
 #main {
     display: flex;
@@ -39,11 +39,14 @@ body::-webkit-scrollbar { display: none}
 #main .file.finish .bar,#main .file.finish{background-color:#95d475 ;}
 #main .file.error .bar,#main .file.error{background-color:#F56C6C ;}
 
-#helpInfo{color: gray;}
+#helpInfo{color: gray;margin-top: 180px;}
 
 /* 切换开启后面板的显示隐藏 */
 .waiting #controlPlan #jobStatus
 /* ,.waiting .deliver */
 ,.waiting #main
 /* ,.waiting #helpInfo */
+,#pss
 {display:none !important;}
+.downloading #pss
+{display:block !important;}
