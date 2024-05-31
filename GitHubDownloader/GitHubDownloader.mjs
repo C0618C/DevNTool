@@ -155,7 +155,7 @@ class GitHubDownloader extends EasyEvent {
         if (!curFile) return;       //没有在排队的任务了
 
         curFile.status = "processing";
-        let curDom = this.GetDom(curFile.sha, curFile);
+        // let curDom = this.GetDom(curFile.sha, curFile);
         // curDom.box.className = "file processing";   //TODO: 需要丢到渲染线程处理
         this.processInfo.downloadingNum += 1;
 

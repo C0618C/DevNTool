@@ -1,11 +1,27 @@
 {
-    "WebRoot": "E:\\OtherSources\\DevNTool",
-    "Plugins":"/server/",
+    "WebRoot": "G:\\Projects\\DevNTool",
+    "Plugins": "/server/",
     "Port": 8888,
-    "Log":{"Log2Console":["all"]},
-	"Default": [
+    "Default": [
         "index.html",
         "HttpTest.html"
     ],
-    "https":false
+    "https": false,
+    "MIME": {
+        "": "octet-stream",
+        "html": "text/html",
+        "js": "text/javascript",
+        "mjs": "text/javascript",
+        "css": "text/css",
+        "gif": "image/gif",
+        "jpg": "image/jpeg",
+        "png": "image/png",
+        "bmp": "image/bmp",
+        "ico": "image/x-icon",
+        "pdf": "application/pdf",
+        "ttf": "font/ttf",
+        "avi": "video/m-msvideo",
+        "mp4": "video/mp4",
+        "json": "application/json"
+    }
 }
