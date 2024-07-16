@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>批量下载</title>
+    <script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .main {
+            width: 99vw;
+            height: 89vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main textarea {
+            width: 96%;
+            height: 18vh;
+            min-height: 100px;
+            margin: 10px 15px;
+            align-self: center;
+            font-size: 1.2em;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-direction: row;
+            padding: 5px 2vw;
+        }
+
+        .toolbar input[type=button] {
+            align-self: center;
+            flex-grow: 2;
+            padding: 5px 5px;
+        }
+
+        #jobStatus {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            padding: 20px 20px;
+            border: 1px dashed #cccccc;
+            min-height: 300px;
+            height: 100%;
+        }
+
+        #jobStatus .file {
+            padding: 3px 6px;
+            border: 2px solid #C0C4CC;
+            background-color: #F5F7FA;
+            overflow: hidden;
+            text-wrap: nowrap;
+            margin: 2px 1px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        #jobStatus .file .bar {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            height: 100%;
+            width: 0%;
+            z-index: -1;
+        }
+
+        #jobStatus .file.processing {
+            border: 2px solid #ecf5ff;
+            background-color: #ecf5ff;
+        }
+
+        #jobStatus .file.processing .bar {
+            background-color: #409EFF;
+            z-index: 2;
+            opacity: 0.5;
+        }
+
+        #jobStatus .file.finish .bar,
+        #jobStatus .file.finish {
+            background-color: #95d475;
+        }
+
+        #jobStatus .file.error .bar,
+        #jobStatus .file.error {
+            background-color: #F56C6C;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>批量下载</h1>
+    <div class="main">
+        <textarea name="allUrl" id="allUrl" placeholder="输入下载地址，每行一个地址"></textarea>
+        <div class="toolbar">
+            <input type="button" name="downloadBt" id="downloadBt" value="下载！！" />
+            <input type="button" name="retryBt" id="retryBt" value="重试失败项目" />
+            <input type="button" name="saveFileBt" id="saveFileBt" value="保存已下载文件" title="忽略失败文件并保存" />
+        </div>
+        <div style="width: 96%;align-self: center;flex-grow: 2;">
+            <progress id="pss" value="0" min="0" max="1" style="width: 100%;height: 1.5em;"></progress>
+            <div id="jobStatus">
+            </div>
+        </div>
+    </div>
+    <script>
+        //待下载任务
+        class FileInfo {
+            constructor(path) {
+                this.dataUrl = path || ""     // 文件下载地址
+                this.status = 0;      // 文件下载状态：0-等待，1-下载中，2-成功，-1-失败
+                this.size = 0;        // 文件大小
+                this.downSize = 0;    // 已下载大小
+                this.sha = path;          //文件摘要
+                this.path = path;         //显示文件名
+                this.fileName = "";         //文件存储名称——如果服务器返回了
+
+                // this._getSHA(path).then(sha => this.sha = sha);
+            }
+            _getSHA(text) {
+                return crypto.subtle.digest("SHA-1", new TextEncoder().encode(text)).then(hash => Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join(""));
+            }
+        }
+
+        class MFDownloader {
+            constructor() {
+                this.fileHub = [];  //已下载文件仓      Array<FileInfo>
+                this.domHub = new Map();     //待下载的文件进度条仓库
+                this.MAX_Thread_Num = 10;     //最大线程数
+                this.RunTreadNum = 0;         //本次任务使用线程数
+
+                //进度信息
+                this.processInfo = {}
+            }
+
+            //初始化进度信息
+            InitProcessInfo() {
+                this.processInfo = {
+                    downloadingNum: 0,  //正在下载数
+                    errorNum: 0, // 出错数
+                    finishNum: 0, // 已下载数
+                    allNum: 0,      //任务总数
+                    //统计类
+                    totalSize: 0,        //总文件字节数
+                    doneSize: 0,         //已完成字节数
+                    maxFileSize: 0,       //最大的文件字节数
+                }
+            }
+
+            //开始下载
+            Star(pathArray) {
+                this.fileHub = [];
+                for (let f of pathArray) {
+                    this.fileHub.push(new FileInfo(f))
+                }
+                this.RunTreadNum = Math.min(this.fileHub.length, this.MAX_Thread_Num);
+                this.InitProcessInfo();
+
+                this.InitUI();
+                this.render();
+
+                for (let i = 0; i < this.RunTreadNum; i++)     //先一起跑10个看看
+                    this.DownloadFile();
+
+                // console.log(this.fileHub);
+            }
+
+            //进度开始后初始化UI
+            InitUI() {
+                let mBox = document.getElementById("jobStatus");
+                mBox.innerHTML = "";
+
+                this.domHub = new Map();
+                let pss = document.getElementById("pss");
+                this.domHub.set("pss", pss);
+                pss.value = 0;
+
+                if (this.fileHub.length <= 0) return;
+
+                let files = [];
+                for (let f of this.fileHub) {
+                    let curDom = this.GetDom(f.sha, f);
+                    files.push(curDom);
+
+                    curDom.box.className = "file " + f.status
+                }
+
+                this.processInfo.allNum = files.length; //设置总数
+                mBox.append(...files.map(f => f.box));
+
+                // console.log(files);
+            }
+
+            DownloadFile() {
+                let curFile = this.fileHub.find(file => file.status == "");
+                if (!curFile) return;       //没有在排队的任务了
+
+                curFile.status = "processing";
+                let curDom = this.GetDom(curFile.sha, curFile);
+                this.processInfo.downloadingNum += 1;
+
+                this.FetchFile(curFile)
+                    .then((fileData) => {
+                        curFile.fileData = fileData;
+                        curFile.status = "finish";
+                        this.processInfo.finishNum += 1;
+                    })
+                    .catch((err) => {
+                        console.log("待处理的错误：", err);
+                        curFile.status = "error";
+                        this.processInfo.errorNum += 1;
+                    })
+                    .finally((info) => {
+                        this.DownloadFile();
+                        this.processInfo.downloadingNum -= 1;
+                    });
+
+                // console.log(this);
+            }
+
+            //重启已失败项目
+            RetryDownlaod() {
+                let eList = this.fileHub.filter(f => f.status == "error");
+                for (let f of eList) { f.status = ""; }
+
+                this.processInfo.errorNum = 0;       //-= eList.length;
+                for (let i = this.processInfo.downloadingNum; i < this.RunTreadNum; i++)
+                    this.DownloadFile();
+            }
+
+            /**
+             * 重新激活任务/不开启
+             * @param {*} sha 任务sha
+             * @returns 
+             */
+            ReActive(sha) {
+                let fInfo = this.fileHub.find(f => f.sha === sha);
+                if (!fInfo) return;
+
+                if (fInfo.status !== "error") return;
+                fInfo.status = "";
+                this.processInfo.errorNum = Math.max(this.processInfo.errorNum - 1, 0);
+                if (this.processInfo.downloadingNum === 0) this.DownloadFile();
+            }
+
+            SaveAsZip() {
+                console.log("开始制作压缩包");
+                const zip = new JSZip();
+
+                this.fileHub.forEach(item => {
+                    if (item.status !== 'finish') return;
+                    //决定了下载文件的名称
+                    let saveFileName = item.fileName || item.path.replace(/https?:\/\//, "")
+                    if (/[?*"<>]/g.test(saveFileName)) saveFileName = saveFileName.replace(/[?*"<>]/g, "");
+                    zip.file(saveFileName, item.fileData);
+                });
+                zip.generateAsync({ type: 'blob' }).then((content) => {
+                    let a = document.createElement('a')
+                    a.download = `批量下载——${new Date().toJSON()}.zip`
+                    a.href = URL.createObjectURL(content)
+                    a.style.display = 'none'
+                    document.body.appendChild(a)
+                    a.click()
+                    a.remove();
+                    console.log("下载压缩包");
+                })
+
+            }
+
+            FetchWithProxy(url) {
+                let param = {
+                    body: `&proxy_only=true&target_url=${decodeURIComponent(url)}`
+                    , method: "POST"
+                    , headers: { "Content-type": "application/x-www-four-urlencoded;charset=UTF-8" }//与本地服务的协议
+                }
+
+                return fetch("/Plugin/Proxy", param)
+            }
+
+            FetchFile(fileInfo) {
+                const chunks = [];
+                let totalBytesReceived = 0;
+                // let totalBytesExpected = -1;
+                let pInfo = this.processInfo;
+                return this.FetchWithProxy(fileInfo.dataUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new response.statusText;
+                        }
+
+                        // 获取响应的总大小  
+                        const contentLength = response.headers.get('Content-Length');
+                        fileInfo.size = contentLength ? parseInt(contentLength, 10) : -1;
+
+                        //取得文件的实际名称并保存
+                        let myFileName = response.headers.get("Content-Disposition");
+                        let filenameMark = "filename="
+                        if (myFileName?.includes(filenameMark)) {
+                            fileInfo.fileName = decodeURIComponent(myFileName.substr(myFileName.indexOf(filenameMark) + filenameMark.length));
+                            //console.log("文件名：", fileInfo.fileName);
+                        }
+
+                        // 创建一个读取器  
+                        const reader = response.body.getReader();
+
+                        // 读取流数据  
+                        function readStream() {
+                            return reader.read().then(({ done, value }) => {
+                                if (done) {
+                                    return;
+                                }
+
+                                // 更新已接收的字节数  
+                                totalBytesReceived += value.length;
+
+                                // 将数据块添加到chunks数组中  
+                                chunks.push(value);
+
+                                // 设置进度
+                                fileInfo.process = totalBytesReceived / fileInfo.size;
+                                pInfo.doneSize += value.length;
+                                fileInfo.downSize += value.length;
+
+                                // 继续读取  
+                                return readStream();
+                            });
+                        }
+
+                        // 开始读取流  
+                        return readStream();
+                    })
+                    .then(() => {
+                        return new Blob(chunks);
+                    });
+            }
+
+            //生成/取得文件进度条
+            GetDom(sha, file) {
+                let key = "SHA_" + sha;
+                let result = this.domHub.get(key);
+                if (!this.domHub.has(key)) {
+                    let dom = document.createElement("div");
+                    dom.className = "file";
+                    dom.style.width = `${(file.size / this.processInfo.maxFileSize * 100)}%`;
+                    dom.setAttribute("title", file.path);
+                    dom.setAttribute("data-sha", sha);
+                    dom.addEventListener("click", () => {
+                        let fileInfo = this.fileHub.find(f => f.sha == sha);
+                        if (!fileInfo) return console.warn("处理点击任务失败：找不到任务对应的下载信息。") || 0;
+
+                        //点击出错的任务时 重启任务
+                        if (fileInfo.status === "error") this.ReActive(sha);
+
+                        // this?.taskClickCallback(fileInfo);
+                        //this.emit("click-task-bar", fileInfo);
+
+                        if (fileInfo.status === "finish" && (fileInfo.path.endsWith("png") || fileInfo.path.endsWith("jpg") || fileInfo.path.endsWith("gif"))) {
+                            let i = new Image();
+                            i.src = window.URL.createObjectURL(fileInfo.fileData);
+                            document.body.appendChild(i);
+                            setTimeout(() => {
+                                URL.revokeObjectURL(i.src);
+                            }, 1000);
+                        }
+                        // this.emit("hover-task-bar", fileInfo);
+                    });
+
+                    let text = document.createTextNode(file.path);
+                    let bar = document.createElement("div");
+                    bar.className = "bar";
+                    dom.appendChild(text);
+                    dom.appendChild(bar);
+                    // document.getElementById("main").appendChild(dom);
+
+                    result = {
+                        box: dom,
+                        bar: bar,
+                        data: file
+                    }
+
+                    this.domHub.set(key, result);
+                }
+
+                return result;
+            }
+
+            //刷新UI
+            render() {
+                for (let file of this.fileHub) {
+                    let dom = this.GetDom(file.sha, file);
+                    let cn = "file " + file.status;
+                    let pn = Math.floor(file.process * 100) + "%";
+
+                    if (dom.box.className != cn) dom.box.className = cn;
+                    if (dom.bar.style.width != pn) dom.bar.style.width = pn;
+                }
+
+                // this.emit("render-ui");
+                let pss = this.domHub.get("pss");
+                pss.value = this.processInfo.finishNum / this.processInfo.allNum;
+
+                if (this.processInfo.allNum === this.processInfo.finishNum) {
+                    if (this.processInfo.finishNum == 0) alert("出现错误，没有任何完成了的文件！");
+                    else this.SaveAsZip();
+                    return;
+                } else {
+                    requestAnimationFrame(() => { this.render() });
+                }
+            }
+        }
+
+        //
+
+        let DownloadManager = new MFDownloader();
+        document.getElementById("downloadBt").addEventListener("click", () => {
+            let allPath = document.getElementById("allUrl").value;
+            let pathArray = allPath.split("\n");
+            pathArray = pathArray.filter(x => x != "");
+
+            if (pathArray.length == 0) { alert("还没输入地址"); return false; }
+            DownloadManager.Star(pathArray);
+        });
+
+        //重试
+        document.getElementById("retryBt").addEventListener("click", () => {
+            DownloadManager.RetryDownlaod();
+        });
+        //保存已下载项目
+        document.getElementById("saveFileBt").addEventListener("click", () => {
+            if (DownloadManager.processInfo.finishNum == 0) {
+                alert("还没有已完成项目")
+                return;
+            }
+
+            DownloadManager.SaveAsZip();
+        });
+    </script>
+</body>
+
+</html>

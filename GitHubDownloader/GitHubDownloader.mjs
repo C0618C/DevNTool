@@ -109,6 +109,12 @@ class GitHubDownloader extends EasyEvent {
             }
         }
 
+        //还是没有，分支接口默认分页，每页最大100项，为提高命中强制开启了只筛选保护分支，如果主分支没设置为保护就找不到了
+        if (!this.repoInfo.branchName) {
+            alert("没推测到合适的分支，请在仓库地址提供指定分支。");
+            return;
+        }
+
         //下载路径判断逻辑
         if (this.downloadUrl.endsWith(".git")) return callback?.call();       //下载整个仓库
         if (this.downloadUrl.includes(`/tree/${this.repoInfo.branchName}/`)) {  //例：https://github.com/mdn/js-examples/tree/main/module-examples
@@ -225,14 +231,14 @@ class GitHubDownloader extends EasyEvent {
      */
     InitProcess(tree) {
         for (let item of tree) {
-            if (item.type === "tree") continue;
+            if (["tree", "commit"].includes(item.type)) continue;
             if (this.repoInfo.dirPath !== "" && !item.path.includes(this.repoInfo.dirPath)) continue;
 
             item.dataUrl = `https://raw.githubusercontent.com/${this.repoInfo.ownerName}/${this.repoInfo.projectName}/${this.repoInfo.branchName}/${item.path}`
             item.status = "";
 
             this.fileHub.push(item);
-            this.processInfo.totalSize += item.size;
+            this.processInfo.totalSize += (item.size || 0);
             this.processInfo.maxFileSize = Math.max(this.processInfo.maxFileSize, item.size);
         }
 
@@ -346,12 +352,21 @@ class GitHubDownloader extends EasyEvent {
 
     Fetch(url, option) {
         return fetch(url, option)
-            .then((response) => {
-                if (!response.ok) throw new Error('请求分支信息失败，请检查仓库地址，结果：' + response.status);
+            .then(async (response) => {
+                if (!response.ok)
+                    if (response.status === 403) throw new Error(await response.text());
+                    else throw new Error('访问Github接口失败，请检查仓库地址，结果：' + response.status);
                 return response.json()
             })
             .catch(err => {
-                alert(err + `\n\n所有者:${this.repoInfo.ownerName}\n仓库名:${this.repoInfo.projectName}`);
+                try {
+                    let msg = JSON.parse(err.message)
+                    if (msg.message.startsWith("API rate limit exceeded")) {
+                        alert("Github Api 因调用频繁已被限制使用，请先歇一会再试吧，详情见:" + msg.documentation_url);
+                        return;
+                    }
+                } catch { }
+                alert(err + `\n\n所有者:${this.repoInfo.ownerName}\n仓库名:${this.repoInfo.projectName}\n分支：${this.repoInfo.branchName}`);
             })
     }
 
@@ -359,9 +374,9 @@ class GitHubDownloader extends EasyEvent {
      * 更新分支信息
      */
     FetchBranches() {
-        if (!this.repoInfo.ownerName || !this.repoInfo.projectName) throw ("仓库信息不正确，请提供正确的地址。");
+        if (!this.repoInfo.ownerName || !this.repoInfo.projectName) throw ("仓库信息不正确，请提供正确的地址。\n接口文档:https://docs.github.com/en/rest/branches/branches?apiVersion=2022-11-28#list-branches");
 
-        return this.Fetch(`https://api.github.com/repos/${this.repoInfo.ownerName}/${this.repoInfo.projectName}/branches`);
+        return this.Fetch(`https://api.github.com/repos/${this.repoInfo.ownerName}/${this.repoInfo.projectName}/branches?per_page=100`);//最大只能每页100
     }
     /**
      * 获取标签信息

@@ -84,8 +84,8 @@
 
                 <textarea id="headerInfo" name="headerInfo" class="form-control" placeholder="自定义Header" rows="3" style="display:none;"></textarea>
                 <textarea name="target_param" class="form-control auto-zoom" placeholder="POST参数" rows="3"></textarea>
-                <div>
-                    <select name="proxy_type" id="proxy_type" class="form-control" style="margin-top:14px;float:left;width:20%">
+                <div class="flexMe">
+                    <select name="proxy_type" id="proxy_type" class="form-control" style="margin-top:14px;flex-grow: 2;">
                         <option value="post">POST</option>
                         <option value="get">GET</option>
                         <option value="put">PUT</option>
@@ -95,16 +95,16 @@
                         <option value="patch">PATCH</option>
                         <option value="options">OPTIONS</option>
                     </select>
-                    <select name="code" id="code" class="form-control" style="margin-top:13px;margin-left:10px;float:left;width:38%;">
+                    <select name="code" id="code" class="form-control" style="margin-top:13px;margin-left:10px;flex-grow: 2;">
                         <option value="utf8">UTF-8 --接口输出的编码</option>
                         <option value="gbk">GBk --接口输出的编码</option>
                         <option value="gb2312">GB2312 --接口输出的编码</option>
                     </select>
-                    <select name="iscompress" id="iscompress" class="form-control" disabled="disabled" style="margin-top:10px;margin-left:10px;float:left;width:30.5%;display: none;">
+                    <select name="iscompress" id="iscompress" class="form-control" disabled="disabled" style="margin-top:10px;margin-left:10px;flex-grow: 2;display: none;">
                         <option value="1">自动解压(gzip,deflate,flate)</option>
                         <option value="2">不解压</option>
                     </select>
-                    <select name="contentType" id="contentType" class="form-control" style="margin-top:10px;margin-left:10px;float:left;width:30.5%;">
+                    <select name="contentType" id="contentType" class="form-control" style="margin-top:10px;margin-left:10px;flex-grow: 2;">
                         <option value="x-www-four-urlencoded">Content-Type : application/x-www-four-urlencoded </option>
                         <option value="json">Content-Type : application/json</option>
                     </select>
@@ -112,7 +112,7 @@
                 <div class="flexMe">
                     <button type="button" id="btn" class="form-control" style="flex-grow: 6;width:60%;background-color: #3d8ac7;color: white;">发送请求</button>
                     <button type="button" id="hightForm" class="form-control" style="flex-grow: 1;width: 20%;">自定义Header</button>
-                    <button type="reset" id="clearform" class="form-control" style="flex-grow: 1;width: 20%;margin-right: 40px;">清空表单</button>
+                    <button type="reset" id="clearform" class="form-control" style="flex-grow: 1;width: 20%;">清空表单</button>
                 </div>
             </form>
             <hr />
@@ -138,6 +138,7 @@
                 <li><a href="ToDoList.html" target="_blank">待办清单</a></li>
                 <li><a href="IconFontViewer.html" target="_blank">IconFont 查看工具</a></li>
                 <li><a href="/GitHubDownloader/index.html" target="_blank">Github目录下载工具</a></li>
+                <li><a href="/MultiLinkDownloader.html" target="_blank">多链接批量下载</a></li>
             </ul>
             <hr/>
             <h3 style="text-align: center;">历史执行结果</h3>
