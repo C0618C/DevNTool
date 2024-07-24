@@ -38,8 +38,9 @@
     </div>
     <div id="helpInfo">
         <h3>说明</h3>
-        <p>本工具用于下载Github仓库，网络不好时克隆或下载仓库压缩包很容易失败。本工具实质是一个网页版的爬虫，将仓库按单个文件下载，部分文件失败了可以重试，避免一次下载不完整个仓库导致失败。降低对网络质量的依赖。</p>
-        <p>本工具支持下载整个仓库，也支持只下载特定文件夹。详细规则可看下面示例。</p>
+        <p>本工具用于下载Github仓库。</p>
+        <p>网络不好时克隆或下载仓库压缩包很容易失败。本工具实质是一个网页版的爬虫，将仓库按单个文件下载，部分文件失败了可以重试，避免一次下载不完整个仓库导致失败。降低对网络质量的依赖。</p>
+        <p>本工具支持下载整个仓库，也支持只下载特定文件夹，还能设定下载具体标签或分支。详细规则可看下面示例。</p>
         <h3>仓库地址示例</h3>
         <p>仓库首页：https://github.com/trekhleb/javascript-algorithms</p>
         <p>Clone地址：https://github.com/trekhleb/javascript-algorithms.git</p>
@@ -51,7 +52,7 @@
     </div>
 </body>
 
-<script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+<script type="text/javascript" src="../lib/jszip.min.3.10.0.js"></script>
 
 <script type="module">
     import { GitHubDownloader } from './GitHubDownloader.mjs'

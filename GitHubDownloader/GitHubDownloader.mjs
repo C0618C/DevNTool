@@ -23,6 +23,7 @@ class EasyEvent {
 class GitHubDownloader extends EasyEvent {
     /**
      * 下载助手，每个对象服务一个下载任务
+     * @param {*} eventRunner document对象，借用document实现消息的发送
      * @param {x} url 下载的起点地址
      */
     constructor(eventRunner, url) {
@@ -40,6 +41,8 @@ class GitHubDownloader extends EasyEvent {
         }
 
         this.fileHub = [];      //文件仓库
+        this.MAX_Thread_Num = 10;     //最大线程数
+        this.RunTreadNum = 0;         //本次任务使用线程数
 
         //进度信息
         this.processInfo = {
@@ -54,8 +57,7 @@ class GitHubDownloader extends EasyEvent {
         }
 
         this.domHub = null;     //每一文件 对应的显示元素仓库
-        // this.renderUI = null;
-        // this.taskClickCallback = null;  //点击每个任务的回调处理
+
     }
 
     ///—————————————————————具体实现逻辑—————————————————————————///
@@ -92,12 +94,18 @@ class GitHubDownloader extends EasyEvent {
 
         //分支判断逻辑
         if (this.repoInfo.branchName) return callback?.call();
-        let branchAndTag = [...await this.FetchBranches(), ...await this.FetchTags()]
-        branchAndTag.map(item => item.name).some(branch => {
-            if (this.downloadUrl.includes(branch)) {
-                this.repoInfo.branchName = branch;
-            }
-        });
+        let branchAndTag = [];
+        try {
+            branchAndTag = [...await this.FetchBranches(), ...await this.FetchTags()]
+            branchAndTag.map(item => item.name).some(branch => {
+                if (this.downloadUrl.includes(branch)) {
+                    this.repoInfo.branchName = branch;
+                }
+            });
+        } catch (err) {
+            alert("获取仓库分支信息失败，需要重试");
+            return;
+        }
 
         if (!this.repoInfo.branchName) {        //没指定分支时，选择默认分支
             let defBranchName = ["main", "master"];
@@ -140,16 +148,15 @@ class GitHubDownloader extends EasyEvent {
         this.emit("update-repo-info");
 
         if (download) this.StartDownLoad();
+        this.render();
     }
 
     /**
      * 开始下载
      */
     StartDownLoad() {
-        for (let i = 0; i < Math.min(this.fileHub.length, 10); i++)     //先一起跑10个看看
+        for (let i = this.processInfo.downloadingNum; i < this.RunTreadNum; i++)
             this.DownloadFile();
-
-        this.render();
     }
 
     /**
@@ -161,8 +168,6 @@ class GitHubDownloader extends EasyEvent {
         if (!curFile) return;       //没有在排队的任务了
 
         curFile.status = "processing";
-        // let curDom = this.GetDom(curFile.sha, curFile);
-        // curDom.box.className = "file processing";   //TODO: 需要丢到渲染线程处理
         this.processInfo.downloadingNum += 1;
 
         this.FetchFile(curFile)
@@ -181,12 +186,11 @@ class GitHubDownloader extends EasyEvent {
                 this.processInfo.downloadingNum -= 1;
             });
 
-        // console.log(this);
     }
 
     SaveAsZip() {
         console.log("开始制作压缩包");
-        const zip = new JSZip()
+        const zip = new JSZip();
         this.fileHub.forEach(item => item.status === 'finish' && zip.file(item.path, item.fileData))
         zip.generateAsync({ type: 'blob' }).then((content) => {
             let a = document.createElement('a')
@@ -196,7 +200,7 @@ class GitHubDownloader extends EasyEvent {
             document.body.appendChild(a)
             a.click()
             a.remove();
-            console.log("下载压缩包");
+            console.log("下载压缩包", content);
         })
 
     }
@@ -245,10 +249,13 @@ class GitHubDownloader extends EasyEvent {
         //优化大小对比悬殊的情况
         let overHalf = this.fileHub.filter(f => f.size * 2 > this.processInfo.maxFileSize);
         if (overHalf.length <= 1) this.processInfo.maxFileSize /= 2;
+
+        this.RunTreadNum = Math.min(this.fileHub.length, this.MAX_Thread_Num);
     }
 
     /**
      * 刷新，创建所有文本进度块
+     * 会销毁当前所有进度条对象
      * @param {*} tree 
      */
     SyncDom() {
@@ -289,12 +296,15 @@ class GitHubDownloader extends EasyEvent {
                 //出错任务重启
                 if (fileInfo.status === "error") this.ReActive(sha);
 
-                // this?.taskClickCallback(fileInfo);
                 this.emit("click-task-bar", fileInfo);
-                // });
-                // dom.addEventListener("hover", () => {
-                // let fileInfo = this.fileHub.find(f => f.sha == sha);
-                if (fileInfo.status === "finish" && (fileInfo.path.endsWith("png") || fileInfo.path.endsWith("jpg") || fileInfo.path.endsWith("gif"))) {
+
+                //点击时创建图片预览
+                if (fileInfo.status === "finish" && (
+                    fileInfo.path.endsWith("png") ||
+                    fileInfo.path.endsWith("jpg") ||
+                    fileInfo.path.endsWith("jpeg") ||
+                    fileInfo.path.endsWith("gif")
+                )) {
                     let i = new Image();
                     i.src = window.URL.createObjectURL(fileInfo.fileData);
                     document.body.appendChild(i);
@@ -302,7 +312,6 @@ class GitHubDownloader extends EasyEvent {
                         URL.revokeObjectURL(i.src);
                     }, 1000);
                 }
-                // this.emit("hover-task-bar", fileInfo);
             });
 
             let text = document.createTextNode(file.path);
@@ -334,10 +343,12 @@ class GitHubDownloader extends EasyEvent {
             f.status = "";
         }
         this.processInfo.errorNum -= eList.length;
+
+        if (this.processInfo.downloadingNum === 0) this.StartDownLoad();     //如果已经没有在下载的任务，重新激活
     }
 
     /**
-     * 重新激活任务
+     * 重新激活任务——点击出错任务时触发
      * @param {*} sha 任务sha
      * @returns 
      */
@@ -348,8 +359,16 @@ class GitHubDownloader extends EasyEvent {
         if (fInfo.status !== "error") return;
         fInfo.status = "";
         this.processInfo.errorNum = Math.max(this.processInfo.errorNum - 1, 0);
+
+        if (this.processInfo.downloadingNum === 0) this.DownloadFile();     //如果已经没有在下载的任务，重新激活
     }
 
+    /**
+     * 下载文件
+     * @param {*} url 
+     * @param {*} option 
+     * @returns 
+     */
     Fetch(url, option) {
         return fetch(url, option)
             .then(async (response) => {
