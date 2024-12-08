@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U8 Player Example with Input</title>
+    <style>
+        #videoUrl {
+            padding: 5px;
+            font-size: 15px;
+        }
+
+        #loadVideoBtn {
+            padding: 5px 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+    <script src="/lib/hls.js"></script>
+</head>
+
+<body>
+    <h1>M3U8 Video Player with Input</h1>
+    <div style="display: flex;">
+        <button id="loadVideoBtn" onclick="loadVideo()">加载视频</button>
+        <input type="text" id="videoUrl" placeholder="输入M3U8地址" style="flex-grow: 2;font-size: 2em;">
+    </div>
+    <video id="video" controls style="width: 100%;"></video>
+    <script>
+        function Load() {
+            var videoUrl = document.getElementById('videoUrl').value;
+            if (!videoUrl) {
+                alert('Please enter a valid M3U8 video URL.');
+                return;
+            }
+            loadVideo(videoUrl);
+        }
+
+
+        function loadVideo(videoUrl) {
+            var video = document.getElementById('video');
+            if (Hls.isSupported()) {
+                var hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    video.play();
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Direct playback for Safari  
+                video.src = videoUrl;
+                video.addEventListener('loadedmetadata', function () {
+                    video.play();
+                });
+            } else {
+                alert('Your browser does not support HLS playback.');
+            }
+        }  
+        
+        (()=>{
+            if(window.location.href.includes("?")){
+                var videoUrl = window.location.href.substring(window.location.href.indexOf("?")+1);
+                loadVideo(videoUrl);
+            }
+        })();
+    </script>
+</body>
+
+</html>
