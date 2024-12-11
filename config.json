@@ -1,6 +1,6 @@
 {
-    "WebRoot": "G:\\Projects\\DevNTool",
-    "Plugins": "/server/",
+    "WebRoot": "G:\\Projects\\DevNTool\\Web",
+    "Plugins": "./../server/",
     "Port": 8888,
     "Default": [
         "index.html",

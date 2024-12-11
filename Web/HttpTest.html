@@ -137,9 +137,9 @@
                 <li><a href="URLEncode.html" target="_blank">UrlEncode编码/解码</a></li>
                 <li><a href="ToDoList.html" target="_blank">待办清单</a></li>
                 <li><a href="IconFontViewer.html" target="_blank">IconFont 查看工具</a></li>
-                <li><a href="/GitHubDownloader/index.html" target="_blank">Github目录下载工具</a></li>
-                <li><a href="/MultiLinkDownloader.html" target="_blank">多链接批量下载</a></li>
-                <li><a href="/m3u8.html" target="_blank">M3U8播放器</a></li>
+                <li><a href="GitHubDownloader/index.html" target="_blank">Github目录下载工具</a></li>
+                <li><a href="MultiLinkDownloader.html" target="_blank">多链接批量下载</a></li>
+                <li><a href="m3u8.html" target="_blank">M3U8播放器</a></li>
             </ul>
             <hr/>
             <h3 style="text-align: center;">历史执行结果</h3>
@@ -307,10 +307,14 @@
 
         let ListMap=new Map();
         for(let x of hisObj){
-            let u = new URL(x.url);
-            let groupArray = ListMap.get(u.host)||[];
-            groupArray.push(x);
-            ListMap.set(u.host,groupArray);
+            try{
+                let u = new URL(x.url);
+                let groupArray = ListMap.get(u.host)||[];
+                groupArray.push(x);
+                ListMap.set(u.host,groupArray);
+            }catch{
+                
+            }
         }
         for(let [key,value] of ListMap.entries()){          
             let titleObj=document.createElement("li");
