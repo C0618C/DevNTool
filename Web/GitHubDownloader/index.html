@@ -22,6 +22,7 @@
             <input type="button" id="analyseBt" value="分析仓库" />
             <input type="button" id="reavtiveBt" value="重试所有出错任务" />
             <input type="button" id="downloadBt" value="下载已完成文件" />
+            <input type="button" id="exportBt" value="导出下载清单" />
 
         </div>
 
@@ -32,7 +33,7 @@
             <progress id="pss" value="0" min="0" max="1" style="width: 100%;"></progress>
         </div>
     </div>
-    
+
     <div id="main">
 
     </div>
@@ -101,6 +102,13 @@
     document.getElementById("downloadBt").addEventListener("click", () => {
         curDownloader.SaveAsZip();
     });
+    document.getElementById("exportBt").addEventListener("click", () => {
+        if (!curDownloader) {
+            alert("当前没有仓库信息，请先分析仓库！");
+            return;
+        }
+        curDownloader.ExportDownloadList();
+    });
 
 
     function UpdateRepo() {
@@ -126,7 +134,7 @@
         <p>总任务数：${info.allNum}</p>
         <p>已完成数：${info.finishNum}</p>
         <p>出错任务：${info.errorNum}</p>
-        <p>下载进度：${(info.doneSize/info.totalSize*100).toFixed(2)}%</p>
+        <p>下载进度：${(info.doneSize / info.totalSize * 100).toFixed(2)}%</p>
         <p>已下大小：${info.doneSize}</p>
         `;
         let pss = document.getElementById("pss");

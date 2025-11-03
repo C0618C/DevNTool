@@ -41,7 +41,7 @@ class GitHubDownloader extends EasyEvent {
         }
 
         this.fileHub = [];      //文件仓库
-        this.MAX_Thread_Num = 10;     //最大线程数
+        this.MAX_Thread_Num = 1;     //最大线程数
         this.RunTreadNum = 0;         //本次任务使用线程数
 
         //进度信息
@@ -251,6 +251,17 @@ class GitHubDownloader extends EasyEvent {
         if (overHalf.length <= 1) this.processInfo.maxFileSize /= 2;
 
         this.RunTreadNum = Math.min(this.fileHub.length, this.MAX_Thread_Num);
+    }
+
+    ExportDownloadList() {
+        // if(this.fileHub.length == 0){
+        //     alert("当前没有仓库信息，请先分析仓库！");
+        //     return;
+        // }
+        let fileList = this.fileHub.map(f => f.dataUrl);//.join("\n")
+        let win = window.open("about:blank", "_blank");//.document.write(this.fileHub.map(f=>f.dataUrl).join("\n"));
+        fileList.forEach(line => win.document.write(line + "<br/>"));
+        win.document.close();
     }
 
     /**
