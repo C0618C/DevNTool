@@ -41,7 +41,7 @@ class GitHubDownloader extends EasyEvent {
         }
 
         this.fileHub = [];      //文件仓库
-        this.MAX_Thread_Num = 1;     //最大线程数
+        this.MAX_Thread_Num = 2;     //最大线程数
         this.RunTreadNum = 0;         //本次任务使用线程数
 
         //进度信息

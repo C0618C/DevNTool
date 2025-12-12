@@ -21,6 +21,7 @@
         <div class="toolbox">
             <input type="button" id="analyseBt" value="分析仓库" />
             <input type="button" id="reavtiveBt" value="重试所有出错任务" />
+            <input type="button" id="addALine" value="添加一个下载任务" />
             <input type="button" id="downloadBt" value="下载已完成文件" />
             <input type="button" id="exportBt" value="导出下载清单" />
 
@@ -109,6 +110,9 @@
         }
         curDownloader.ExportDownloadList();
     });
+    document.getElementById("addALine").addEventListener("click", () => {
+        curDownloader.DownloadFile();
+    });
 
 
     function UpdateRepo() {
@@ -138,10 +142,7 @@
         <p>已下大小：${info.doneSize}</p>
         `;
         let pss = document.getElementById("pss");
-        pss.value = info.doneSize / info.totalSize;
-        // <p>正在下载：${info.downloadingNum}</p>
-
-        // infoPan.style.display = "flex";
+        pss.value = info?.doneSize / (info?.totalSize || 1);
     }
 
     function ClickTask(event) {

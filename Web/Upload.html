@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>文件上传（移动优先）</title>
+    <style>
+        :root {
+            --accent: #1976d2;
+            --bg: #f6f8fb;
+            --card: #fff;
+            --success: #4caf50;
+            --error: #f44336;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: system-ui, Segoe UI, Roboto, Arial;
+            text-rendering: optimizeLegibility;
+            background: var(--bg);
+            -webkit-tap-highlight-color: transparent
+        }
+
+        .wrap {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 16px
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .06)
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0 0 8px
+        }
+
+        p.lead {
+            margin: 0 0 12px;
+            color: #555;
+            font-size: .95rem
+        }
+
+        .drop {
+            border: 2px dashed rgba(25, 118, 210, .25);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+            transition: background .15s;
+            border-style: dashed;
+            background: linear-gradient(180deg, rgba(25, 118, 210, 0.02), transparent)
+        }
+
+        .drop.drag {
+            background: rgba(25, 118, 210, 0.04)
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(25, 118, 210, .12)
+        }
+
+        .file-list {
+            margin-top: 12px;
+            display: grid;
+            gap: 10px
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #fbfdff
+        }
+
+        .thumb {
+            width: 56px;
+            height: 56px;
+            border-radius: 6px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden
+        }
+
+        .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover
+        }
+
+        .meta {
+            flex: 1;
+            min-width: 0
+        }
+
+        .name {
+            font-weight: 600;
+            font-size: .95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .size {
+            color: #666;
+            font-size: .85rem;
+            margin-top: 2px
+        }
+
+        .progress {
+            height: 8px;
+            background: #e9eef7;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 8px
+        }
+
+        .bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0;
+            transition: width .2s
+        }
+
+        .bar.success {
+            background: var(--success);
+        }
+
+        .bar.error {
+            background: var(--error);
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px
+        }
+
+        .small {
+            font-size: .85rem;
+            padding: 8px 10px;
+            border-radius: 8px
+        }
+
+        input[type=file] {
+            display: none
+        }
+
+        @media (max-width:480px) {
+            .thumb {
+                width: 48px;
+                height: 48px
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center
+            }
+
+            .actions {
+                flex-direction: column
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="card">
+            <h1>上传文件</h1>
+            <p class="lead">支持多文件/图片预览/进度。拖拽或点击选择文件。为移动端优化大按钮与手势。</p>
+
+            <div id="drop" class="drop" tabindex="0">
+                <div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap">
+                    <label class="btn" id="selectBtn">选择文件</label>
+                    <span style="color:#555">或将文件拖到这里上传</span>
+                </div>
+                <input id="fileInput" type="file" multiple />
+            </div>
+
+            <div class="file-list" id="fileList"></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (() => {
+            const drop = document.getElementById('drop');
+            const fileInput = document.getElementById('fileInput');
+            const selectBtn = document.getElementById('selectBtn');
+            const fileList = document.getElementById('fileList');
+
+            selectBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+            // drag & drop
+            ['dragenter', 'dragover'].forEach(evt => {
+                drop.addEventListener(evt, e => {
+                    e.preventDefault(); e.stopPropagation();
+                    drop.classList.add('drag');
+                });
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                drop.addEventListener(evt, e => {
+                    e.preventDefault(); e.stopPropagation();
+                    drop.classList.remove('drag');
+                });
+            });
+            drop.addEventListener('drop', e => {
+                const dt = e.dataTransfer;
+                if (dt && dt.files && dt.files.length) handleFiles(dt.files);
+            });
+
+            function handleFiles(fileListObj) {
+                const files = Array.from(fileListObj);
+                files.forEach(file => {
+                    const row = createFileRow(file);
+                    fileList.prepend(row.container);
+                    uploadFile(file, row);
+                });
+            }
+
+            function createFileRow(file) {
+                const container = document.createElement('div');
+                container.className = 'file-row card';
+
+                const thumb = document.createElement('div');
+                thumb.className = 'thumb';
+                // preview if image
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.alt = file.name;
+                    const reader = new FileReader();
+                    reader.onload = e => img.src = e.target.result;
+                    reader.readAsDataURL(file);
+                    thumb.appendChild(img);
+                } else {
+                    thumb.textContent = '文件';
+                }
+
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                const name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = file.name;
+                const size = document.createElement('div');
+                size.className = 'size';
+                size.textContent = (file.size / 1024 / 1024 < 1) ? (file.size / 1024 | 0) + ' KB' : (file.size / 1024 / 1024).toFixed(2) + ' MB';
+
+                const progressWrap = document.createElement('div');
+                progressWrap.className = 'progress';
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                progressWrap.appendChild(bar);
+
+                meta.appendChild(name);
+                meta.appendChild(size);
+                meta.appendChild(progressWrap);
+
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'small';
+                cancelBtn.textContent = '取消';
+                actions.appendChild(cancelBtn);
+
+                container.appendChild(thumb);
+                container.appendChild(meta);
+                container.appendChild(actions);
+
+                return { container, bar, cancelBtn, name, size };
+            }
+
+            function uploadFile(file, row) {
+                const xhr = new XMLHttpRequest();
+                const url = '/Plugin/Upload';
+                const form = new FormData();
+                form.append('file', file);
+
+                xhr.open('POST', url, true);
+
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        const pct = (e.loaded / e.total * 100).toFixed(0) + '%';
+                        row.bar.style.width = pct;
+                    }
+                };
+
+                xhr.onload = function () {
+                    // 移除取消按钮
+                    row.cancelBtn.remove();
+                    
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        const res = safeJson(xhr.responseText);
+                        if (res && res.success) {
+                            // 查找当前文件的上传信息
+                            if (res.files && res.files.length > 0) {
+                                const uploadedFile = res.files.find(f => f.filename === file.name);
+                                if (uploadedFile) {
+                                    row.name.textContent = uploadedFile.filename + ' 上传完成';
+                                    // 更新显示的文件大小为服务器端的大小
+                                    row.size.textContent = (uploadedFile.size / 1024 / 1024 < 1) ? (uploadedFile.size / 1024 | 0) + ' KB' : (uploadedFile.size / 1024 / 1024).toFixed(2) + ' MB';
+                                } else {
+                                    row.name.textContent = file.name + ' 上传完成';
+                                }
+                            } else {
+                                row.name.textContent = file.name + ' 上传完成';
+                            }
+                            row.bar.classList.add('success');
+                            row.bar.style.width = '100%';
+                        } else {
+                            // 显示后端返回的错误信息
+                            row.name.textContent = file.name + ' 上传失败：' + (res ? res.message || '未知错误' : '响应格式错误');
+                            row.bar.classList.add('error');
+                            row.bar.style.width = '100%';
+                        }
+                    } else {
+                        // HTTP错误
+                        row.name.textContent = file.name + ' 上传出错：HTTP ' + xhr.status + ' ' + xhr.statusText;
+                        row.bar.classList.add('error');
+                        row.bar.style.width = '100%';
+                    }
+                };
+
+                xhr.onerror = function () {
+                    row.cancelBtn.remove();
+                    row.name.textContent = file.name + ' 网络错误';
+                    row.bar.classList.add('error');
+                    row.bar.style.width = '100%';
+                };
+
+                xhr.onabort = function () {
+                    row.cancelBtn.remove();
+                    row.name.textContent = file.name + ' 已取消';
+                    row.bar.classList.add('error');
+                };
+
+                row.cancelBtn.addEventListener('click', () => xhr.abort());
+
+                xhr.send(form);
+            }
+
+            function safeJson(text) {
+                try { return JSON.parse(text); } catch (e) { return null; }
+            }
+
+        })();
+    </script>
+</body>
+
+</html>
