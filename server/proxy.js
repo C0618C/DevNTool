@@ -139,18 +139,28 @@ function ProxyData(response, url, data, option) {
         let [http, options] = GetHttpServer(url);
         options.headers['Content-Length'] = Buffer.byteLength(postData);
 
-        let body = "";//远程接口返回来的数据包
-
-        var Iconv = { decode: (chunk) => chunk };
         const req = http.request(options, (res) => {
             try {
-                if (option.code != "utf8") Iconv = require('iconv-lite');//解决编码问题
-                res.on('data', (chunk) => {
-                    //rsl+=chunk;
-                    body += Iconv.decode(chunk, option.code);
-                });
-                res.on('end', (...x) => {
-                    response.end(FormatOutput(body, req, postData, tS));
+                const chunks = [];
+                res.on("data", chunk => { chunks.push(chunk); });
+                res.on("error", err => { throw new Error(err) });
+                res.on("end", () => {
+                    try {
+                        // 合并所有字节后再解码（避免跨包截断）
+                        const buffer = Buffer.concat(chunks);
+
+                        // 解码
+                        let result = "";
+                        if (option.code === 'utf-8' || option.code === 'utf8') {
+                            result = buffer.toString("utf-8");
+                        } else {
+                            const iconv = require('iconv-lite');
+                            result = iconv.decode(buffer, option.code);
+                        }
+                        response.end(FormatOutput(result, req, postData, tS));
+                    } catch (err) {
+                        throw new Error(`解码失败: ${err.message}`);
+                    }
                 });
             } catch (err) {
                 Web.Err(err);
