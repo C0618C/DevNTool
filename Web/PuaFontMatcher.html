@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>私有区字体匹配器 · v1.7.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js">
+    </script>
+    <style>
+        /* ========== 完整样式 ========== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            padding: 36px 40px 48px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            border-bottom: 2px solid #eef2f6;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            background: linear-gradient(135deg, #0f172a, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .sub {
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: 400;
+            background: #f1f5f9;
+            padding: 4px 14px;
+            border-radius: 40px;
+            -webkit-text-fill-color: #64748b;
+        }
+
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 48px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: #fafcff;
+            position: relative;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+            transform: scale(1.005);
+        }
+
+        .upload-zone .icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.6;
+        }
+
+        .upload-zone p {
+            font-size: 16px;
+            color: #475569;
+            margin: 4px 0;
+        }
+
+        .upload-zone .hint {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .info-panel {
+            display: none;
+            margin-top: 28px;
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 20px 24px;
+            border: 1px solid #e9edf2;
+            flex-wrap: wrap;
+            gap: 12px 32px;
+            align-items: center;
+        }
+
+        .info-panel.show {
+            display: flex;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .info-item .label {
+            color: #94a3b8;
+            font-weight: 450;
+        }
+
+        .info-item .value {
+            font-weight: 500;
+            color: #0f172a;
+        }
+
+        .info-item .value.code {
+            font-family: "SF Mono", "JetBrains Mono", monospace;
+            background: #e9edf2;
+            padding: 1px 10px;
+            border-radius: 30px;
+            font-size: 13px;
+        }
+
+        .stats {
+            display: none;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #475569;
+            padding: 0 4px;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .stats.show {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stats .count {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .stats .count span {
+            background: #dbeafe;
+            padding: 0 12px;
+            border-radius: 40px;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+
+        .stats .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-match {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-match:hover {
+            background: #2563eb;
+        }
+
+        .btn-match:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-match.cancel {
+            background: #ef4444;
+        }
+
+        .btn-match.cancel:hover {
+            background: #dc2626;
+        }
+
+        .btn-export {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-export:hover {
+            background: #059669;
+        }
+
+        .btn-export:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .progress-wrap {
+            display: none;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .progress-wrap.show {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: #3b82f6;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* ===== 参数面板 ===== */
+        .params-panel {
+            display: none;
+            margin-top: 16px;
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 16px 20px;
+            border: 1px solid #e9edf2;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            align-items: center;
+        }
+
+        .params-panel.show {
+            display: flex;
+        }
+
+        .param-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .param-group label {
+            color: #475569;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .param-group input[type="number"],
+        .param-group select {
+            width: 70px;
+            padding: 4px 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+            outline: none;
+        }
+
+        .param-group input[type="number"]:focus,
+        .param-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .param-group input[type="number"] {
+            width: 60px;
+        }
+
+        .btn-apply-params {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 4px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-apply-params:hover {
+            background: #2563eb;
+        }
+
+        .btn-apply-params:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .table-wrap {
+            display: none;
+            margin-top: 16px;
+            border-radius: 14px;
+            border: 1px solid #e9edf2;
+            overflow: hidden;
+            max-height: 560px;
+            overflow-y: auto;
+            background: #ffffff;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .table-wrap.show {
+            display: block;
+        }
+
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .table-wrap thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f1f5f9;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table-wrap thead th {
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #334155;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .table-wrap tbody tr {
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.15s;
+        }
+
+        .table-wrap tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .table-wrap tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .table-wrap tbody td {
+            padding: 12px 12px;
+            vertical-align: middle;
+            color: #1e293b;
+        }
+
+        .table-wrap .col-codepoint {
+            font-family: "SF Mono", "JetBrains Mono", monospace;
+            font-size: 13px;
+            color: #0f172a;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        .table-wrap .col-char {
+            font-size: 32px;
+            line-height: 1.4;
+            text-align: center;
+            min-width: 60px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            padding: 4px 8px;
+        }
+
+        .table-wrap .col-mapping {
+            font-size: 16px;
+            font-weight: 500;
+            text-align: left;
+            color: #0f172a;
+            line-height: 1.6;
+        }
+
+        .table-wrap .col-mapping .match-item {
+            display: inline-block;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin: 2px 4px 2px 0;
+            cursor: default;
+        }
+
+        .table-wrap .col-mapping .match-item .char {
+            font-size: 32px;
+            font-weight: 400;
+        }
+
+        .table-wrap .col-mapping .match-item .sim {
+            font-size: 12px;
+            color: #64748b;
+            margin-left: 4px;
+        }
+
+        .table-wrap .col-mapping .match-item .code {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-left: 4px;
+        }
+
+        .table-wrap .col-mapping .no-match {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .table-wrap .col-action {
+            text-align: center;
+        }
+
+        .btn-compare {
+            background: #e9edf2;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+            color: #1e293b;
+        }
+
+        .btn-compare:hover {
+            background: #d1d9e6;
+        }
+
+        .btn-list {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-list:hover {
+            background: #2563eb;
+        }
+
+        .btn-list:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: all 0.15s;
+            margin-left: 4px;
+        }
+
+        .copy-btn:hover {
+            background: #e9edf2;
+            color: #0f172a;
+        }
+
+        .copy-btn.copied {
+            color: #16a34a;
+        }
+
+        .empty-state {
+            display: none;
+            padding: 40px 20px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        .empty-state.show {
+            display: block;
+        }
+
+        .empty-state .big-icon {
+            font-size: 48px;
+            opacity: 0.5;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        /* ===== Loading 进度条 ===== */
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .loading .progress-bar {
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto 12px;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .loading .progress-bar .fill {
+            height: 100%;
+            background: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .loading .loading-text {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .loading .loading-percent {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 24px;
+            max-width: 560px;
+            width: 90%;
+            padding: 32px 28px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+            animation: modalIn 0.2s ease;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.15s;
+            padding: 0 4px;
+        }
+
+        .modal-close:hover {
+            color: #0f172a;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .modal-body .list-item:hover {
+            background: #e2e8f0;
+        }
+
+        .modal-body .list-item .char {
+            font-size: 24px;
+            font-weight: 500;
+            min-width: 40px;
+        }
+
+        .modal-body .list-item .info {
+            color: #64748b;
+        }
+
+        .modal-body .list-item .sim {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .modal-body .list-item.highlight {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .modal-body .list-item .set-best-btn {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .modal-body .list-item .set-best-btn:hover {
+            background: #059669;
+        }
+
+        .modal-body .empty-msg {
+            color: #94a3b8;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        /* 手动比对预览 */
+        .pua-preview {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 14px;
+            border: 1px solid #e9edf2;
+        }
+
+        .pua-preview .label {
+            font-size: 14px;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .pua-preview .char-big {
+            font-size: 52px;
+            line-height: 1.2;
+            min-width: 60px;
+            text-align: center;
+            font-family: 'custom-pua-font', sans-serif;
+        }
+
+        .pua-preview .info {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-left: auto;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .input-group input {
+            flex: 1;
+            min-width: 100px;
+            padding: 8px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 30px;
+            font-size: 28px;
+            text-align: center;
+            outline: none;
+            transition: border 0.2s;
+            font-family: sans-serif;
+        }
+
+        .input-group input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-calc {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-calc:hover {
+            background: #2563eb;
+        }
+
+        .btn-calc:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .result-area {
+            display: none;
+            margin-top: 6px;
+            padding: 16px;
+            background: #f1f5f9;
+            border-radius: 14px;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .result-area.show {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .result-area .sim {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            flex: 1;
+        }
+
+        .result-area .sim .high {
+            color: #16a34a;
+        }
+
+        .result-area .sim .low {
+            color: #dc2626;
+        }
+
+        .result-area .thumbnails {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-area .thumbnails canvas {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #fff;
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+        }
+
+        .result-area .thumbnails .vs {
+            color: #94a3b8;
+            font-weight: 300;
+        }
+
+        .result-area .thumb-label {
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        .btn-set-best {
+            background: #10b981;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            align-self: center;
+        }
+
+        .btn-set-best:hover {
+            background: #059669;
+        }
+
+        .btn-set-best:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* 手动比对参数 */
+        .compare-params {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            align-items: center;
+        }
+
+        .compare-params .param-group {
+            font-size: 12px;
+        }
+
+        .compare-params .param-group input[type="number"],
+        .compare-params .param-group select {
+            width: 55px;
+            padding: 2px 4px;
+            font-size: 12px;
+        }
+
+        .compare-params .param-group input[type="number"] {
+            width: 50px;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 20px 16px 32px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .upload-zone {
+                padding: 32px 16px;
+            }
+
+            .info-panel {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                padding: 16px;
+            }
+
+            .table-wrap {
+                max-height: 400px;
+                font-size: 13px;
+            }
+
+            .table-wrap thead th,
+            .table-wrap tbody td {
+                padding: 8px 6px;
+            }
+
+            .table-wrap .col-char {
+                font-size: 26px;
+                min-width: 44px;
+            }
+
+            .stats {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .stats .actions {
+                width: 100%;
+            }
+
+            .btn-match,
+            .btn-export {
+                width: 100%;
+                text-align: center;
+            }
+
+            .modal {
+                padding: 24px 16px;
+            }
+
+            .pua-preview .char-big {
+                font-size: 38px;
+                min-width: 40px;
+            }
+
+            .input-group input {
+                font-size: 24px;
+            }
+
+            .result-area {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .params-panel {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .param-group {
+                flex-wrap: wrap;
+            }
+
+            .compare-params {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+
+            .loading .progress-bar {
+                width: 90%;
+            }
+        }
+
+        .table-wrap::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-wrap::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .table-wrap::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .table-wrap::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔤 私有区字体匹配器</h1>
+            <span class="sub">v1.7.0</span>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <span class="icon">📁</span>
+            <p><strong>点击选择</strong> 或拖拽 TTF / WOFF 字体文件到此</p>
+            <p class="hint">支持 .ttf、.woff 格式 · 自动解析私有区字符</p>
+            <input type="file" id="fileInput" accept=".ttf,.woff,font/ttf,font/woff" />
+        </div>
+
+        <!-- ===== Loading 进度条 ===== -->
+        <div class="loading" id="loadingIndicator">
+            <div class="progress-bar">
+                <div class="fill" id="loadingProgressFill" style="width:0%;"></div>
+            </div>
+            <div class="loading-text">
+                <span id="loadingStatusText">正在解析字体文件…</span>
+                <span class="loading-percent" id="loadingPercent">0%</span>
+            </div>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="info-panel" id="infoPanel">
+            <div class="info-item">
+                <span class="label">字体名称</span>
+                <span class="value" id="fontName">—</span>
+            </div>
+            <div class="info-item">
+                <span class="label">版本</span>
+                <span class="value" id="fontVersion">—</span>
+            </div>
+            <div class="info-item">
+                <span class="label">字形总数</span>
+                <span class="value code" id="glyphCount">—</span>
+            </div>
+            <div class="info-item">
+                <span class="label">私有区字符</span>
+                <span class="value code" id="puaCount">—</span>
+            </div>
+        </div>
+
+        <!-- ===== 参数面板 ===== -->
+        <div class="params-panel" id="paramsPanel">
+            <div class="param-group">
+                <label>画布尺寸</label>
+                <input type="number" id="paramCanvasSize" value="32" min="8" max="64" step="2" />
+            </div>
+            <div class="param-group">
+                <label>阈值 (%)</label>
+                <input type="number" id="paramThreshold" value="90" min="50" max="99" step="1" />
+            </div>
+            <div class="param-group">
+                <label>起始码点</label>
+                <input type="text" id="paramStartCode" value="0x4E00" style="width:70px;" />
+            </div>
+            <div class="param-group">
+                <label>结束码点</label>
+                <input type="text" id="paramEndCode" value="0x9FFF" style="width:70px;" />
+            </div>
+            <div class="param-group">
+                <label>偏移值</label>
+                <input type="number" id="paramMaxShift" value="3" min="0" max="8" step="1" />
+            </div>
+            <div class="param-group">
+                <label>范围预设</label>
+                <select id="paramRangePreset">
+                    <option value="simplified">简体汉字 (4E00-9FFF)</option>
+                    <option value="traditional">繁体汉字 (3400-4DBF, 4E00-9FFF, 20000-2A6DF)</option>
+                    <option value="all">全部 CJK (4E00-9FFF, 3400-4DBF, 20000-2A6DF)</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <button class="btn-apply-params" id="btnApplyParams" disabled>应用参数并重新匹配</button>
+        </div>
+
+        <div class="stats" id="statsBar">
+            <span class="count">共找到 <span id="totalCount">0</span> 个私有区字符</span>
+            <div class="actions">
+                <button class="btn-match" id="btnMatch" disabled>开始图形匹配</button>
+                <button class="btn-export" id="btnExport" disabled>导出结果</button>
+                <button class="btn-apply-params" id="btnToggleParams" style="background:#8b5cf6;">⚙️ 参数</button>
+            </div>
+            <div class="progress-wrap" id="progressWrap">
+                <div class="progress-bar">
+                    <div class="fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中…</div>
+            </div>
+        </div>
+
+        <div class="table-wrap" id="tableWrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:15%;">码点 (U+)</th>
+                        <th style="width:10%;">十进制</th>
+                        <th style="width:12%;">显示字符</th>
+                        <th style="width:28%;">🏆 最佳匹配</th>
+                        <th style="width:15%;text-align:center;">操作</th>
+                        <th style="width:15%;text-align:center;">匹配记录</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <span class="big-icon">🔍</span>
+            <p>该字体在私有区 (U+E000–U+F8FF) 未定义任何字符</p>
+            <p style="font-size:13px;margin-top:6px;">或尝试上传其他 TTF / WOFF 字体</p>
+        </div>
+    </div>
+
+    <!-- ===== 匹配记录模态框 ===== -->
+    <div class="modal-overlay" id="matchListModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="matchListTitle">匹配记录</h2>
+                <button class="modal-close" id="matchListClose">&times;</button>
+            </div>
+            <div class="modal-body" id="matchListBody">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 手动比对模态框 ===== -->
+    <div class="modal-overlay" id="compareModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🔍 手动比对（使用上传字体）</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pua-preview">
+                    <span class="label">私有字符</span>
+                    <span class="char-big" id="modalPuaChar">�</span>
+                    <span class="info" id="modalPuaInfo">U+E000</span>
+                </div>
+                <div class="input-group">
+                    <label for="inputCompareChar">输入字符</label>
+                    <input type="text" id="inputCompareChar" maxlength="1" placeholder="例如：一" />
+                    <button class="btn-calc" id="btnCalcSimilarity">计算相似度</button>
+                </div>
+                <!-- 手动比对参数 -->
+                <div class="compare-params">
+                    <span style="font-weight:500;font-size:13px;color:#475569;">参数：</span>
+                    <div class="param-group">
+                        <label>画布</label>
+                        <input type="number" id="cmpCanvasSize" value="32" min="8" max="64" step="2"
+                            style="width:50px;" />
+                    </div>
+                    <div class="param-group">
+                        <label>偏移</label>
+                        <input type="number" id="cmpMaxShift" value="3" min="0" max="8" step="1" style="width:50px;" />
+                    </div>
+                    <button class="btn-apply-params" id="cmpApplyParams"
+                        style="font-size:12px;padding:2px 12px;">应用参数重算</button>
+                </div>
+                <div class="result-area" id="resultArea">
+                    <div class="sim" id="simDisplay">相似度: <span>—</span></div>
+                    <div class="thumbnails">
+                        <div><canvas id="thumbPua" width="32" height="32"></canvas>
+                            <div class="thumb-label">私有</div>
+                        </div>
+                        <span class="vs">vs</span>
+                        <div><canvas id="thumbInput" width="32" height="32"></canvas>
+                            <div class="thumb-label">输入</div>
+                        </div>
+                    </div>
+                    <button class="btn-set-best" id="btnSetBestFromCompare" disabled>设为最佳匹配</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // ================= 版本号 =================
+            const VERSION = 'v1.7.0';
+            console.log(`🔤 私有区字体匹配器 ${VERSION}`);
+
+            // ================= 默认配置 =================
+            const DEFAULT_CONFIG = {
+                canvasSize: 32,
+                threshold: 0.90,
+                cjkStart: 0x4E00,
+                cjkEnd: 0x9FFF,
+                maxShift: 3,
+            };
+
+            let currentConfig = { ...DEFAULT_CONFIG };
+
+            // ================= DOM 引用 =================
+            const fileInput = document.getElementById('fileInput');
+            const uploadZone = document.getElementById('uploadZone');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const loadingProgressFill = document.getElementById('loadingProgressFill');
+            const loadingStatusText = document.getElementById('loadingStatusText');
+            const loadingPercent = document.getElementById('loadingPercent');
+            const errorMsg = document.getElementById('errorMsg');
+            const infoPanel = document.getElementById('infoPanel');
+            const fontNameEl = document.getElementById('fontName');
+            const fontVersionEl = document.getElementById('fontVersion');
+            const glyphCountEl = document.getElementById('glyphCount');
+            const puaCountEl = document.getElementById('puaCount');
+            const statsBar = document.getElementById('statsBar');
+            const totalCountEl = document.getElementById('totalCount');
+            const tableWrap = document.getElementById('tableWrap');
+            const tableBody = document.getElementById('tableBody');
+            const emptyState = document.getElementById('emptyState');
+            const btnMatch = document.getElementById('btnMatch');
+            const btnExport = document.getElementById('btnExport');
+            const progressWrap = document.getElementById('progressWrap');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const paramsPanel = document.getElementById('paramsPanel');
+            const btnToggleParams = document.getElementById('btnToggleParams');
+            const btnApplyParams = document.getElementById('btnApplyParams');
+
+            const paramCanvasSize = document.getElementById('paramCanvasSize');
+            const paramThreshold = document.getElementById('paramThreshold');
+            const paramStartCode = document.getElementById('paramStartCode');
+            const paramEndCode = document.getElementById('paramEndCode');
+            const paramMaxShift = document.getElementById('paramMaxShift');
+            const paramRangePreset = document.getElementById('paramRangePreset');
+
+            const matchListModal = document.getElementById('matchListModal');
+            const matchListClose = document.getElementById('matchListClose');
+            const matchListTitle = document.getElementById('matchListTitle');
+            const matchListBody = document.getElementById('matchListBody');
+            const compareModal = document.getElementById('compareModal');
+            const modalClose = document.getElementById('modalClose');
+            const modalPuaChar = document.getElementById('modalPuaChar');
+            const modalPuaInfo = document.getElementById('modalPuaInfo');
+            const inputCompareChar = document.getElementById('inputCompareChar');
+            const btnCalcSimilarity = document.getElementById('btnCalcSimilarity');
+            const resultArea = document.getElementById('resultArea');
+            const simDisplay = document.getElementById('simDisplay');
+            const thumbPua = document.getElementById('thumbPua');
+            const thumbInput = document.getElementById('thumbInput');
+            const btnSetBestFromCompare = document.getElementById('btnSetBestFromCompare');
+            const cmpCanvasSize = document.getElementById('cmpCanvasSize');
+            const cmpMaxShift = document.getElementById('cmpMaxShift');
+            const cmpApplyParams = document.getElementById('cmpApplyParams');
+
+            // ================= 状态 =================
+            let puaCharsData = [];
+            let fontFamilyName = '';
+            let isMatching = false;
+            let matchCanceled = false;
+            let currentComparePua = null;
+            let currentCompareIndex = -1;
+            let currentCompareSimilarity = 0;
+            let currentCompareChar = '';
+            let allMatches = [];
+            let stdPixelCache = null;
+            let isParamsVisible = false;
+
+            // ================= 工具函数 =================
+            function showError(msg) {
+                errorMsg.textContent = msg;
+                errorMsg.classList.add('show');
+                loadingIndicator.classList.remove('show');
+            }
+            function hideError() { errorMsg.classList.remove('show'); }
+
+            function showLoading(show, statusText = '正在解析字体文件…', progress = -1) {
+                if (show) {
+                    loadingIndicator.classList.add('show');
+                    if (statusText) loadingStatusText.textContent = statusText;
+                    if (progress >= 0) {
+                        loadingProgressFill.style.width = progress + '%';
+                        loadingPercent.textContent = Math.round(progress) + '%';
+                    } else {
+                        // indeterminate 动画（CSS 处理，或者设为 0 但文字显示“准备中”）
+                        loadingProgressFill.style.width = '0%';
+                        loadingPercent.textContent = '…';
+                    }
+                } else {
+                    loadingIndicator.classList.remove('show');
+                }
+            }
+
+            function updateLoadingProgress(progress, statusText) {
+                if (!loadingIndicator.classList.contains('show')) return;
+                if (progress >= 0) {
+                    loadingProgressFill.style.width = progress + '%';
+                    loadingPercent.textContent = Math.round(progress) + '%';
+                }
+                if (statusText) loadingStatusText.textContent = statusText;
+            }
+
+            function resetUI() {
+                infoPanel.classList.remove('show');
+                statsBar.classList.remove('show');
+                tableWrap.classList.remove('show');
+                emptyState.classList.remove('show');
+                hideError();
+                tableBody.innerHTML = '';
+                puaCharsData = [];
+                fontFamilyName = '';
+                allMatches = [];
+                stdPixelCache = null;
+                btnMatch.disabled = true;
+                btnExport.disabled = true;
+                progressWrap.classList.remove('show');
+                isMatching = false;
+                matchCanceled = false;
+                btnMatch.textContent = '开始图形匹配';
+                btnMatch.classList.remove('cancel');
+                progressText.innerHTML = '准备中…';
+                paramsPanel.classList.remove('show');
+                isParamsVisible = false;
+                btnToggleParams.textContent = '⚙️ 参数';
+                btnApplyParams.disabled = true;
+                // 重置 loading 进度
+                showLoading(false);
+            }
+            function toHexCodePoint(code) {
+                if (code === undefined || code === null || code < 0) return 'U+????';
+                return 'U+' + code.toString(16).toUpperCase().padStart(4, '0');
+            }
+            function parseHex(hexStr) {
+                let s = hexStr.trim();
+                if (s.startsWith('0x')) s = s.substring(2);
+                return parseInt(s, 16);
+            }
+
+            // ================= 核心算法（使用动态参数） =================
+            function computeBestMSEWithShift(arr1, arr2, maxShift) {
+                const size = Math.sqrt(arr1.length);
+                function getPixel(arr, x, y) {
+                    if (x < 0 || x >= size || y < 0 || y >= size) return 255;
+                    return arr[y * size + x];
+                }
+                let bestMSE = Infinity;
+                for (let dy = -maxShift; dy <= maxShift; dy++) {
+                    for (let dx = -maxShift; dx <= maxShift; dx++) {
+                        let sum = 0,
+                            count = 0;
+                        for (let y = 0; y < size; y++) {
+                            for (let x = 0; x < size; x++) {
+                                const val1 = arr1[y * size + x];
+                                const val2 = getPixel(arr2, x + dx, y + dy);
+                                const diff = val1 - val2;
+                                sum += diff * diff;
+                                count++;
+                            }
+                        }
+                        const mse = sum / (count * 65025);
+                        if (mse < bestMSE) bestMSE = mse;
+                    }
+                }
+                return bestMSE;
+            }
+
+            function renderCharToCanvas(char, fontFamily, size) {
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, size, size);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, size, size);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const fontStr = fontFamily ? `${size * 0.8}px "${fontFamily}", sans-serif` : `${size * 0.8}px sans-serif`;
+                ctx.font = fontStr;
+                ctx.fillStyle = '#000';
+                ctx.fillText(char, size / 2, size / 2 + size * 0.05);
+                const imageData = ctx.getImageData(0, 0, size, size);
+                const data = imageData.data;
+                const gray = new Uint8Array(size * size);
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i],
+                        g = data[i + 1],
+                        b = data[i + 2];
+                    gray[i / 4] = 0.299 * r + 0.587 * g + 0.114 * b;
+                }
+                return gray;
+            }
+            function drawGrayToCanvas(canvas, gray, size) {
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(size, size);
+                const data = imageData.data;
+                for (let i = 0; i < gray.length; i++) {
+                    const val = gray[i],
+                        idx = i * 4;
+                    data[idx] = data[idx + 1] = data[idx + 2] = val;
+                    data[idx + 3] = 255;
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // ================= 解析字体 =================
+            function parseFont(buffer) {
+                return new Promise((resolve, reject) => {
+                    try { resolve(opentype.parse(buffer)); } catch (err) { reject(new Error('字体解析失败: ' + err.message)); }
+                });
+            }
+            function extractPUAChars(font) {
+                const puaChars = [];
+                const glyphs = font.glyphs;
+                for (let i = 0; i < glyphs.length; i++) {
+                    const glyph = glyphs.get(i);
+                    let codePoints = [];
+                    if (glyph.unicode !== undefined && glyph.unicode !== -1) codePoints.push(glyph.unicode);
+                    if (glyph.unicodes && Array.isArray(glyph.unicodes)) {
+                        for (const uc of glyph.unicodes) {
+                            if (!codePoints.includes(uc)) codePoints.push(uc);
+                        }
+                    }
+                    for (const cp of codePoints) {
+                        if (cp >= 0xE000 && cp <= 0xF8FF) {
+                            puaChars.push({ codePoint: cp, glyph: glyph, glyphIndex: glyph.index });
+                            break;
+                        }
+                    }
+                }
+                puaChars.sort((a, b) => a.codePoint - b.codePoint);
+                return puaChars;
+            }
+            async function loadFontForDisplay(buffer, familyName) {
+                const blob = new Blob([buffer], { type: 'font/woff' });
+                const url = URL.createObjectURL(blob);
+                try {
+                    const fontFace = new FontFace(familyName, `url(${url})`);
+                    await fontFace.load();
+                    document.fonts.add(fontFace);
+                    return { url, loaded: true };
+                } catch (err) {
+                    console.warn('FontFace API 失败，使用 @font-face 降级', err);
+                    const style = document.createElement('style');
+                    style.textContent =
+                        `@font-face { font-family: '${familyName}'; src: url('${url}') format('truetype'); font-display: swap; }`;
+                    document.head.appendChild(style);
+                    try { await document.fonts.load(`1em '${familyName}'`); } catch (_) { }
+                    return { url, loaded: true };
+                }
+            }
+
+            // ================= 构建标准字符缓存（带进度回调） =================
+            function buildStdPixelCache(fontFamily, startCode, endCode, canvasSize, onProgress) {
+                const cache = new Map();
+                const total = endCode - startCode + 1;
+                return new Promise((resolve) => {
+                    let processed = 0;
+                    const batchSize = 500;
+                    function processBatch() {
+                        const end = Math.min(processed + batchSize - 1, total);
+                        for (let i = processed; i <= end; i++) {
+                            const code = startCode + i;
+                            if (code >= 0xE000 && code <= 0xF8FF) continue;
+                            try {
+                                const char = String.fromCodePoint(code);
+                                const gray = renderCharToCanvas(char, fontFamily, canvasSize);
+                                cache.set(code, gray);
+                            } catch (_) { }
+                        }
+                        processed = end + 1;
+                        const pct = Math.min(100, Math.round((processed / total) * 100));
+                        if (onProgress) onProgress(pct, `构建缓存中…`);
+                        if (processed < total) setTimeout(processBatch, 0);
+                        else resolve(cache);
+                    }
+                    processBatch();
+                });
+            }
+
+            // ================= 图形匹配（使用缓存） =================
+            function matchPUAWithStandardCached(puaChar, stdCache, threshold, maxShift, canvasSize, signal) {
+                return new Promise((resolve) => {
+                    const puaCharStr = String.fromCodePoint(puaChar.codePoint);
+                    let puaPixel = null;
+                    try { puaPixel = renderCharToCanvas(puaCharStr, fontFamilyName, canvasSize); } catch (_) {
+                        return resolve(
+                            []);
+                    }
+                    const matches = [];
+                    for (const [code, stdPixel] of stdCache) {
+                        if (signal && signal.aborted) return resolve([]);
+                        try {
+                            const mse = computeBestMSEWithShift(puaPixel, stdPixel, maxShift);
+                            const similarity = 1 - mse;
+                            if (similarity >= threshold) {
+                                const char = String.fromCodePoint(code);
+                                matches.push({ codePoint: code, char, similarity });
+                            }
+                        } catch (_) { }
+                    }
+                    matches.sort((a, b) => b.similarity - a.similarity);
+                    resolve(matches);
+                });
+            }
+
+            // ================= 匹配主流程 =================
+            async function runGraphicalMatching(puaList, stdCache, config) {
+                const total = puaList.length;
+                const controller = new AbortController();
+                const signal = controller.signal;
+                const startTime = new Date();
+
+                btnMatch.textContent = '取消';
+                btnMatch.classList.add('cancel');
+                btnMatch.disabled = false;
+                progressWrap.classList.add('show');
+
+                allMatches = puaList.map(() => []);
+
+                for (let i = 0; i < total; i++) {
+                    if (signal.aborted) throw new Error('取消匹配');
+                    const pua = puaList[i];
+                    const progress = ((i + 1) / total) * 100;
+                    progressFill.style.width = progress + '%';
+                    const puaChar = String.fromCodePoint(pua.codePoint);
+                    const hex = toHexCodePoint(pua.codePoint);
+                    //预估耗时
+                    const usedMS = new Date() - startTime;
+                    const avgUseMS = usedMS / (i + 1);
+                    const nextMS = avgUseMS * (total - i);
+
+                    progressText.innerHTML = `匹配中 ${i + 1}/${total} (${Math.round(progress)}%)  正在对比 “<span style="font-family: '${fontFamilyName}', sans-serif; font-size: 16px; font-weight: 500; background: #e9edf2; padding: 0 4px; border-radius: 4px;">${puaChar}</span>” (${hex})。已耗时：${(usedMS / 60000).toFixed(1)}分钟；预估剩余${(nextMS / 60000).toFixed(1)}分钟。`;
+
+                    const matches = await matchPUAWithStandardCached(pua, stdCache, config.threshold, config.maxShift, config.canvasSize, signal);
+                    allMatches[i] = matches;
+                    updateTableRow(i);
+                    await new Promise(resolve => setTimeout(resolve, 25));
+                }
+
+                progressFill.style.width = '100%';
+                const matchedCount = allMatches.filter(arr => arr.length > 0).length;
+                progressText.innerHTML =
+                    `✅ 匹配完成！共 ${total} 个字符，${matchedCount} 个有超过阈值的匹配 (≥ ${config.threshold * 100}%)。共耗时：${(new Date() - startTime) / 60000}分钟。`;
+                return allMatches;
+            }
+
+            // ================= 表格更新 =================
+            function updateTableRow(index) {
+                const rows = tableBody.querySelectorAll('tr');
+                if (index >= rows.length) return;
+                const row = rows[index];
+                const mappingCell = row.querySelector('.col-mapping');
+                if (!mappingCell) return;
+                const matches = allMatches[index] || [];
+                if (matches.length > 0) {
+                    const best = matches[0];
+                    const sim = (best.similarity * 100).toFixed(1);
+                    mappingCell.innerHTML = `
+                                <span class="match-item">
+                                    <span class="char">${best.char}</span>
+                                    <span class="sim">${sim}%</span>
+                                    <span class="code">${toHexCodePoint(best.codePoint)}</span>
+                                </span>
+                            `;
+                } else {
+                    mappingCell.innerHTML = '<span class="no-match">无匹配</span>';
+                }
+                const btnList = row.querySelector('.btn-list');
+                if (btnList) {
+                    btnList.disabled = (matches.length === 0);
+                }
+            }
+
+            // ================= 渲染表格 =================
+            function renderTable(puaChars, fontFamily) {
+                if (!puaChars || puaChars.length === 0) {
+                    emptyState.classList.add('show');
+                    tableWrap.classList.remove('show');
+                    statsBar.classList.remove('show');
+                    return;
+                }
+                totalCountEl.textContent = puaChars.length;
+                statsBar.classList.add('show');
+                btnMatch.disabled = false;
+                btnExport.disabled = false;
+
+                let html = '';
+                for (const item of puaChars) {
+                    const cp = item.codePoint,
+                        hex = toHexCodePoint(cp),
+                        dec = cp;
+                    let charDisplay = '';
+                    try { charDisplay = String.fromCodePoint(cp); } catch (_) { charDisplay = '�'; }
+                    html += `
+                                <tr data-pua-index="${puaChars.indexOf(item)}">
+                                    <td class="col-codepoint">${hex}<button class="copy-btn" data-copy="${hex}" title="复制码点">📋</button></td>
+                                    <td style="font-family:monospace;font-size:13px;color:#475569;">${dec}</td>
+                                    <td class="col-char" style="font-family: '${fontFamily}', sans-serif;">${charDisplay}</td>
+                                    <td class="col-mapping"><span class="no-match">等待匹配</span></td>
+                                    <td class="col-action"><button class="btn-compare" data-code="${cp}" data-index="${puaChars.indexOf(item)}">🔍 比对</button></td>
+                                    <td class="col-action"><button class="btn-list" data-index="${puaChars.indexOf(item)}" disabled>📋 查看</button></td>
+                                </tr>
+                            `;
+                }
+                tableBody.innerHTML = html;
+                tableWrap.classList.add('show');
+                emptyState.classList.remove('show');
+
+                // 事件绑定
+                document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        const text = this.dataset.copy;
+                        navigator.clipboard.writeText(text).then(() => {
+                            const orig = this.textContent;
+                            this.textContent = '✅';
+                            this.classList.add('copied');
+                            setTimeout(() => {
+                                this.textContent = orig;
+                                this.classList.remove('copied');
+                            }, 1500);
+                        }).catch(() => {
+                            const ta = document.createElement('textarea');
+                            ta.value = text;
+                            document.body.appendChild(ta);
+                            ta.select();
+                            document.execCommand('copy');
+                            ta.remove();
+                            const orig = this.textContent;
+                            this.textContent = '✅';
+                            setTimeout(() => { this.textContent = orig; }, 1200);
+                        });
+                    });
+                });
+
+                document.querySelectorAll('.btn-compare').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const code = parseInt(this.dataset.code);
+                        const idx = parseInt(this.dataset.index);
+                        const puaItem = puaCharsData[idx];
+                        if (puaItem) openCompareModal(puaItem, idx);
+                        else alert('未找到该字符数据');
+                    });
+                });
+
+                document.querySelectorAll('.btn-list').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const idx = parseInt(this.dataset.index);
+                        showMatchList(idx);
+                    });
+                });
+            }
+
+            // ================= 显示匹配列表 =================
+            function showMatchList(index) {
+                const matches = allMatches[index] || [];
+                if (matches.length === 0) {
+                    alert('该字符暂无超过阈值的匹配，请等待匹配完成或调整阈值。');
+                    return;
+                }
+                const pua = puaCharsData[index];
+                if (!pua) return;
+                const puaChar = String.fromCodePoint(pua.codePoint);
+                matchListTitle.innerHTML = `匹配记录 · ${toHexCodePoint(pua.codePoint)} (<span style="font-family: '${fontFamilyName}', sans-serif;">${puaChar}</span>)`;
+                let html = '';
+                matches.forEach((m, i) => {
+                    const sim = (m.similarity * 100).toFixed(2);
+                    const isBest = (i === 0);
+                    const cls = isBest ? 'list-item highlight' : 'list-item';
+                    html += `
+                                <div class="${cls}" data-index="${index}" data-pos="${i}">
+                                    <span class="char">${m.char}</span>
+                                    <span class="info">${toHexCodePoint(m.codePoint)}</span>
+                                    <span class="sim">${sim}%</span>
+                                    <button class="set-best-btn" data-index="${index}" data-pos="${i}">设为最佳</button>
+                                </div>
+                            `;
+                });
+                matchListBody.innerHTML = html;
+                matchListModal.classList.add('show');
+
+                matchListBody.querySelectorAll('.set-best-btn').forEach(btn => {
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        const idx = parseInt(this.dataset.index);
+                        const pos = parseInt(this.dataset.pos);
+                        setBestMatch(idx, pos);
+                    });
+                });
+                matchListBody.querySelectorAll('.list-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const idx = parseInt(this.dataset.index);
+                        const pos = parseInt(this.dataset.pos);
+                        setBestMatch(idx, pos);
+                    });
+                });
+            }
+
+            function setBestMatch(index, pos) {
+                const matches = allMatches[index];
+                if (!matches || pos >= matches.length) return;
+                const selected = matches.splice(pos, 1)[0];
+                matches.unshift(selected);
+                updateTableRow(index);
+                if (matchListModal.classList.contains('show')) {
+                    showMatchList(index);
+                }
+            }
+
+            function closeMatchList() { matchListModal.classList.remove('show'); }
+
+            // ================= 手动比对 =================
+            function openCompareModal(puaItem, index) {
+                currentComparePua = puaItem;
+                currentCompareIndex = index;
+                const charStr = String.fromCodePoint(puaItem.codePoint);
+                modalPuaChar.textContent = charStr;
+                modalPuaChar.style.fontFamily = `'${fontFamilyName}', sans-serif`;
+                modalPuaInfo.textContent = toHexCodePoint(puaItem.codePoint);
+                inputCompareChar.value = '';
+                resultArea.classList.remove('show');
+                simDisplay.innerHTML = '相似度: <span>—</span>';
+                thumbPua.getContext('2d').clearRect(0, 0, 32, 32);
+                thumbInput.getContext('2d').clearRect(0, 0, 32, 32);
+                btnSetBestFromCompare.disabled = true;
+                currentCompareSimilarity = 0;
+                currentCompareChar = '';
+                cmpCanvasSize.value = currentConfig.canvasSize;
+                cmpMaxShift.value = currentConfig.maxShift;
+                compareModal.classList.add('show');
+                inputCompareChar.focus();
+            }
+
+            function closeCompareModal() {
+                compareModal.classList.remove('show');
+                currentComparePua = null;
+                currentCompareIndex = -1;
+                btnSetBestFromCompare.disabled = true;
+            }
+
+            function calculateManualSimilarityWithParams() {
+                if (!currentComparePua) { alert('请先选择私有字符'); return; }
+                const inputChar = inputCompareChar.value.trim();
+                if (inputChar.length !== 1) { alert('请输入单个字符'); return; }
+                const canvasSize = parseInt(cmpCanvasSize.value) || 32;
+                const maxShift = parseInt(cmpMaxShift.value) || 3;
+                const puaCharStr = String.fromCodePoint(currentComparePua.codePoint);
+                let puaPixel, inputPixel;
+                try { puaPixel = renderCharToCanvas(puaCharStr, fontFamilyName, canvasSize); } catch (_) {
+                    alert(
+                        '渲染私有字符失败'); return;
+                }
+                try { inputPixel = renderCharToCanvas(inputChar, fontFamilyName, canvasSize); } catch (_) {
+                    alert(
+                        '渲染输入字符失败'); return;
+                }
+                const mse = computeBestMSEWithShift(puaPixel, inputPixel, maxShift);
+                const similarity = 1 - mse;
+                currentCompareSimilarity = similarity;
+                currentCompareChar = inputChar;
+
+                resultArea.classList.add('show');
+                const simSpan = simDisplay.querySelector('span');
+                const simPercent = (similarity * 100).toFixed(2);
+                const colorClass = similarity >= currentConfig.threshold ? 'high' : 'low';
+                simSpan.innerHTML = `<span class="${colorClass}">${simPercent}%</span> (MSE: ${mse.toFixed(4)})`;
+                drawGrayToCanvas(thumbPua, puaPixel, canvasSize);
+                drawGrayToCanvas(thumbInput, inputPixel, canvasSize);
+
+                btnSetBestFromCompare.disabled = false;
+            }
+
+            function setManualBestMatch() {
+                if (currentCompareIndex < 0 || currentCompareIndex >= puaCharsData.length) {
+                    alert('无效的字符索引');
+                    return;
+                }
+                if (!currentCompareChar || currentCompareChar.length !== 1) {
+                    alert('请先计算相似度');
+                    return;
+                }
+                let matches = allMatches[currentCompareIndex] || [];
+                const existingIdx = matches.findIndex(m => m.char === currentCompareChar);
+                const newItem = {
+                    codePoint: currentCompareChar.codePointAt(0) || -1,
+                    char: currentCompareChar,
+                    similarity: currentCompareSimilarity,
+                };
+                if (existingIdx >= 0) {
+                    matches.splice(existingIdx, 1);
+                    matches.unshift(newItem);
+                } else {
+                    matches.unshift(newItem);
+                }
+                allMatches[currentCompareIndex] = matches;
+                updateTableRow(currentCompareIndex);
+                if (matchListModal.classList.contains('show')) {
+                    showMatchList(currentCompareIndex);
+                }
+                alert('已将该字符设为最佳匹配！');
+                btnSetBestFromCompare.disabled = true;
+            }
+
+            // ================= 导出 =================
+            function exportResults() {
+                if (allMatches.length === 0) { alert('请先执行匹配，再导出结果。'); return; }
+                let lines = [];
+                for (let i = 0; i < puaCharsData.length; i++) {
+                    const pua = puaCharsData[i];
+                    if (!pua) continue;
+                    const hex = pua.codePoint.toString(16).toUpperCase().padStart(4, '0');
+                    const matches = allMatches[i] || [];
+                    const best = matches.length > 0 ? matches[0] : null;
+                    lines.push(best ? `\\u${hex} ${best.char}` : `\\u${hex} ?`);
+                }
+                const text = lines.join('\n');
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'pua_matches.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            // ================= 参数应用 =================
+            function readParamsFromUI() {
+                const canvasSize = parseInt(paramCanvasSize.value) || 32;
+                const threshold = parseInt(paramThreshold.value) / 100 || 0.90;
+                let startCode = parseHex(paramStartCode.value);
+                let endCode = parseHex(paramEndCode.value);
+                if (isNaN(startCode)) startCode = 0x4E00;
+                if (isNaN(endCode)) endCode = 0x9FFF;
+                if (startCode > endCode) {
+                    const tmp = startCode;
+                    startCode = endCode;
+                    endCode = tmp;
+                }
+                const maxShift = parseInt(paramMaxShift.value) || 3;
+                return { canvasSize, threshold, startCode, endCode, maxShift };
+            }
+
+            function applyParamsToUI(config) {
+                paramCanvasSize.value = config.canvasSize;
+                paramThreshold.value = Math.round(config.threshold * 100);
+                paramStartCode.value = '0x' + config.startCode.toString(16).toUpperCase();
+                paramEndCode.value = '0x' + config.endCode.toString(16).toUpperCase();
+                paramMaxShift.value = config.maxShift;
+                const preset = document.getElementById('paramRangePreset');
+                if (config.startCode === 0x4E00 && config.endCode === 0x9FFF) {
+                    preset.value = 'simplified';
+                } else if (config.startCode === 0x3400 && config.endCode === 0x2A6DF) {
+                    preset.value = 'traditional';
+                } else {
+                    preset.value = 'custom';
+                }
+            }
+
+            function loadPreset() {
+                const preset = paramRangePreset.value;
+                if (preset === 'simplified') {
+                    paramStartCode.value = '0x4E00';
+                    paramEndCode.value = '0x9FFF';
+                } else if (preset === 'traditional') {
+                    paramStartCode.value = '0x3400';
+                    paramEndCode.value = '0x2A6DF';
+                } else if (preset === 'all') {
+                    paramStartCode.value = '0x4E00';
+                    paramEndCode.value = '0x2A6DF';
+                }
+            }
+
+            async function applyParamsAndRematch() {
+                if (!puaCharsData.length || !fontFamilyName) {
+                    alert('请先上传字体文件。');
+                    return;
+                }
+                const config = readParamsFromUI();
+                currentConfig = config;
+                applyParamsToUI(config);
+                btnApplyParams.disabled = true;
+                progressText.innerHTML = '正在重建缓存…';
+                stdPixelCache = null;
+                try {
+                    // 显示 loading 进度
+                    showLoading(true, '正在重建缓存…', 0);
+                    stdPixelCache = await buildStdPixelCache(fontFamilyName, config.startCode, config.endCode, config
+                        .canvasSize, (pct, msg) => {
+                            updateLoadingProgress(pct, msg);
+                        });
+                    showLoading(false);
+                    progressText.innerHTML = '缓存重建完成，开始匹配…';
+                    allMatches = [];
+                    const rows = tableBody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const cell = row.querySelector('.col-mapping');
+                        if (cell) cell.innerHTML = '<span class="no-match">⏳ 重新匹配中</span>';
+                        const btn = row.querySelector('.btn-list');
+                        if (btn) btn.disabled = true;
+                    });
+                    await runGraphicalMatching(
+                        puaCharsData,
+                        stdPixelCache,
+                        config
+                    );
+                    for (let i = 0; i < allMatches.length; i++) {
+                        updateTableRow(i);
+                    }
+                    document.querySelectorAll('.btn-list').forEach(btn => {
+                        const idx = parseInt(btn.dataset.index);
+                        const matches = allMatches[idx] || [];
+                        btn.disabled = (matches.length === 0);
+                    });
+                    btnExport.disabled = false;
+                } catch (err) {
+                    console.error(err);
+                    showError('应用参数失败: ' + err.message);
+                } finally {
+                    btnApplyParams.disabled = false;
+                }
+            }
+
+            // ================= 主流程 =================
+            async function handleFile(file) {
+                resetUI();
+                hideError();
+                const validTypes = ['.ttf', '.woff'];
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                if (!validTypes.includes(ext) && file.type !== 'font/ttf' && file.type !== 'font/woff') {
+                    showError('请上传 .ttf 或 .woff 格式的字体文件 (当前: ' + file.name + ')');
+                    return;
+                }
+                if (file.size > 50 * 1024 * 1024) {
+                    showError('文件过大 (超过 50MB)，请压缩后重试');
+                    return;
+                }
+                showLoading(true, '正在解析字体文件…', -1);
+                try {
+                    const buffer = await readFileAsArrayBuffer(file);
+                    const font = await parseFont(buffer);
+                    const puaChars = extractPUAChars(font);
+                    const family = font.names?.fontFamily?.en || font.names?.fontFamily?.['en'] || '未知字体';
+                    const version = font.names?.version?.en || font.names?.version?.['en'] || '—';
+                    const glyphTotal = font.glyphs.length || 0;
+                    fontNameEl.textContent = family;
+                    fontVersionEl.textContent = version;
+                    glyphCountEl.textContent = glyphTotal;
+                    puaCountEl.textContent = puaChars.length;
+                    infoPanel.classList.add('show');
+
+                    fontFamilyName = 'custom-pua-font-' + Date.now();
+                    await loadFontForDisplay(buffer, fontFamilyName);
+
+                    puaCharsData = puaChars;
+                    renderTable(puaChars, fontFamilyName);
+
+                    if (puaChars.length === 0) {
+                        emptyState.classList.add('show');
+                        statsBar.classList.remove('show');
+                        tableWrap.classList.remove('show');
+                        btnMatch.disabled = true;
+                        btnExport.disabled = true;
+                        btnApplyParams.disabled = true;
+                        showLoading(false);
+                    } else {
+                        btnMatch.disabled = false;
+                        btnExport.disabled = true;
+                        btnApplyParams.disabled = false;
+                        // 构建缓存
+                        const config = readParamsFromUI();
+                        currentConfig = config;
+                        applyParamsToUI(config);
+                        updateLoadingProgress(0, '正在构建标准字符缓存…');
+                        stdPixelCache = await buildStdPixelCache(fontFamilyName, config.startCode, config.endCode, config
+                            .canvasSize, (pct, msg) => {
+                                updateLoadingProgress(pct, msg);
+                            });
+                        showLoading(false);
+                        progressText.innerHTML = '缓存构建完成，可开始匹配。';
+                        paramsPanel.classList.add('show');
+                        isParamsVisible = true;
+                        btnToggleParams.textContent = '🔧 参数';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError('处理失败: ' + err.message);
+                    showLoading(false);
+                }
+            }
+
+            function readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (e.target.result instanceof ArrayBuffer) resolve(e.target.result);
+                        else reject(new Error('读取文件格式错误'));
+                    };
+                    reader.onerror = () => reject(new Error('读取文件失败'));
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            // ================= 事件绑定 =================
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) handleFile(e.target.files[0]);
+                fileInput.value = '';
+            });
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            uploadZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files && files.length > 0) {
+                    const file = files[0];
+                    const ext = '.' + file.name.split('.').pop().toLowerCase();
+                    if (['.ttf', '.woff'].includes(ext) || file.type === 'font/ttf' || file.type === 'font/woff')
+                        handleFile(file);
+                    else showError('请拖拽 .ttf 或 .woff 格式的字体文件');
+                }
+            });
+
+            btnMatch.addEventListener('click', async function () {
+                if (isMatching) {
+                    matchCanceled = true;
+                    btnMatch.disabled = true;
+                    btnMatch.textContent = '取消中…';
+                    return;
+                }
+                if (!puaCharsData.length || !fontFamilyName || !stdPixelCache) {
+                    alert('请先上传字体文件并等待缓存构建完成。');
+                    return;
+                }
+                isMatching = true;
+                matchCanceled = false;
+                btnMatch.disabled = true;
+                btnMatch.textContent = '匹配中…';
+                progressWrap.classList.add('show');
+                progressFill.style.width = '0%';
+                progressText.innerHTML = '正在初始化…';
+
+                try {
+                    const rows = tableBody.querySelectorAll('tr');
+                    rows.forEach(row => {
+                        const cell = row.querySelector('.col-mapping');
+                        if (cell) cell.innerHTML = '<span class="no-match">⏳ 匹配中</span>';
+                        const btn = row.querySelector('.btn-list');
+                        if (btn) btn.disabled = true;
+                    });
+
+                    await runGraphicalMatching(
+                        puaCharsData,
+                        stdPixelCache,
+                        currentConfig
+                    );
+
+                    for (let i = 0; i < allMatches.length; i++) {
+                        updateTableRow(i);
+                    }
+
+                    document.querySelectorAll('.btn-list').forEach(btn => {
+                        const idx = parseInt(btn.dataset.index);
+                        const matches = allMatches[idx] || [];
+                        btn.disabled = (matches.length === 0);
+                    });
+                    btnExport.disabled = false;
+
+                } catch (err) {
+                    if (err.message === '取消匹配') {
+                        progressText.innerHTML = '⏹️ 已取消匹配';
+                        progressFill.style.width = '0%';
+                        const rows = tableBody.querySelectorAll('tr');
+                        rows.forEach(row => {
+                            const cell = row.querySelector('.col-mapping');
+                            if (cell && cell.innerHTML.includes('⏳ 匹配中')) {
+                                cell.innerHTML = '<span class="no-match">已取消</span>';
+                            }
+                        });
+                    } else {
+                        console.error(err);
+                        showError('匹配失败: ' + err.message);
+                        progressText.innerHTML = '❌ 匹配出错';
+                    }
+                } finally {
+                    isMatching = false;
+                    btnMatch.disabled = false;
+                    btnMatch.textContent = '开始图形匹配';
+                    btnMatch.classList.remove('cancel');
+                    if (!matchCanceled) btnExport.disabled = false;
+                    else progressWrap.classList.remove('show');
+                    matchCanceled = false;
+                }
+            });
+
+            btnExport.addEventListener('click', exportResults);
+
+            btnToggleParams.addEventListener('click', function () {
+                if (!puaCharsData.length) {
+                    alert('请先上传字体文件。');
+                    return;
+                }
+                isParamsVisible = !isParamsVisible;
+                paramsPanel.classList.toggle('show', isParamsVisible);
+                btnToggleParams.textContent = isParamsVisible ? '🔧 参数' : '⚙️ 参数';
+            });
+
+            paramRangePreset.addEventListener('change', loadPreset);
+            btnApplyParams.addEventListener('click', applyParamsAndRematch);
+            cmpApplyParams.addEventListener('click', calculateManualSimilarityWithParams);
+            btnCalcSimilarity.addEventListener('click', calculateManualSimilarityWithParams);
+            inputCompareChar.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    calculateManualSimilarityWithParams();
+                }
+            });
+
+            matchListClose.addEventListener('click', closeMatchList);
+            matchListModal.addEventListener('click', function (e) { if (e.target === this) closeMatchList(); });
+            modalClose.addEventListener('click', closeCompareModal);
+            compareModal.addEventListener('click', function (e) { if (e.target === this) closeCompareModal(); });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    if (matchListModal.classList.contains('show')) closeMatchList();
+                    if (compareModal.classList.contains('show')) closeCompareModal();
+                }
+            });
+            btnSetBestFromCompare.addEventListener('click', setManualBestMatch);
+
+            if (typeof opentype === 'undefined') {
+                showError('opentype.js 库加载失败，请检查网络连接后刷新页面');
+            } else {
+                console.log(`✅ ${VERSION} 已就绪`);
+            }
+
+        })();
+    </script>
+
+</body>
+
+</html>
